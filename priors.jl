@@ -1,7 +1,9 @@
 import ModelWeights.Plots as mwp
+
 using CairoMakie
 using Distributions
 using Statistics
+using Turing
 
 include("config.jl")
 
@@ -63,7 +65,7 @@ begin
                 color = COLORS_MODELS[m],
                 label = "Model $m"
             )
-            Makie.scatter!(ax2, mus[m], y, marker='*', markersize=30, color = COLORS_MODELS[m])
+            Makie.scatter!(ax, mus[m], y, marker='*', markersize=30, color = COLORS_MODELS[m])
         end
     end
     axislegend(
@@ -79,6 +81,7 @@ mwp.savePlot(f, joinpath(plot_dir, "fig1a.pdf"); overwrite=true)
 
 # ----------------- show influence of prior on weighted averages ----------------- #
 begin
+    n_models = 38;
     distr = Distributions.Normal(3, 1)
     lh_fn(x) = Distributions.pdf.(distr, x)
     generated_ecs = rand(distr, n_models)
@@ -112,7 +115,7 @@ begin
     Label(f[1, 1, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (10,0,10,0))
     f
 end
-mwp.savePlot(f, joinpath(plot_dir, "fig1b.pdf"); overwrite=true)
+mwp.savePlot(f, joinpath(plot_dir, "fig1b.pdf"))
 
 
 
