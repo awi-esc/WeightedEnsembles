@@ -64,11 +64,6 @@ begin
                 label = "Model $m"
             )
             Makie.scatter!(ax2, mus[m], y, marker='*', markersize=30, color = COLORS_MODELS[m])
-            # Makie.scatter!(
-            #     ax, mean(weight_vectors[m,:]), y, marker='+', markersize=30, color = COLORS[m]
-            # )
-            # xs = mus[m] - sigmas[m] : 0.01: mus[m] + sigmas[m]
-            # Makie.lines!(ax, xs, fill(y, length(xs)), color=COLORS[m], label="Model $m", linewidth=5)
         end
     end
     axislegend(
@@ -81,6 +76,46 @@ begin
     f
 end
 mwp.savePlot(f, joinpath(plot_dir, "fig1a.pdf"); overwrite=true)
+
+# ----------------- show influence of prior on weighted averages ----------------- #
+begin
+    distr = Distributions.Normal(3, 1)
+    lh_fn(x) = Distributions.pdf.(distr, x)
+    generated_ecs = rand(distr, n_models)
+    sort(generated_ecs)
+
+    n_iter = 10000; n_chains = 1;
+    xs = 0.5:0.01:6
+
+    params = [fill(1, n_models), fill(1/n_models, n_models), fill(1/(500), n_models)]
+    labels = [L"Dir($\alpha=1$); $\alpha_0=N$", L"Dir($\alpha=\frac{1}{N}$); $\alpha_0=1$", L"Dir($\alpha=\frac{1}{500}$); $\alpha_0=\frac{N}{500}$"]
+end
+begin
+    f = Figure(size = (325, 350));
+    ax = Axis(f[1,1], xlabel = "Generated data", ylabel = "Density")
+    for (i, alphas) in enumerate(params)
+        model_ecs_dirichlet = mww.weightedAvgModelECS(
+            generated_ecs, alphas, lh_fn, false
+        )
+        samples_prior_dirichlet = Turing.sample(model_ecs_dirichlet, Prior(), MCMCThreads(), n_iter, n_chains)
+        ws_prior_dirichlet, ws_prior_list = mww.drawFromSamples(samples_prior_dirichlet, n_iter, n_chains, n_models)
+        alpha = round(alphas[1], digits=2)
+        # compute weighted averages
+        mstar_ecs_prior =  ws_prior_dirichlet[:,:,1] * generated_ecs
+        Makie.density!(ax, mstar_ecs_prior, color = COLORS[i], alpha = 0.8, label = labels[i])        
+    end
+    # add ECS values of individual models
+    Makie.lines!(ax, xs, lh_fn.(xs), label="Source distribution", color=:black)
+    Makie.scatter!(ax, generated_ecs, fill(0, n_models), color = :darkgrey, marker = '*', markersize = 30, label = "Individual models")
+    Makie.scatter!(ax, mean(generated_ecs), 0, color=:red, marker = '*', markersize = 30, label = "MMM")
+    axislegend(merge = true, framevisible = false, position = :lt, patchsize = (10,10))
+    Label(f[1, 1, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (10,0,10,0))
+    f
+end
+mwp.savePlot(f, joinpath(plot_dir, "fig1b.pdf"); overwrite=true)
+
+
+
 
 
 # -------------------- Some more plots (not in paper) ----------------------#
