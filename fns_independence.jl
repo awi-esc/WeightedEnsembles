@@ -35,62 +35,58 @@ function makeToyData(data, obs; fixed_sigma::Bool=false, sigma::T=2) where T<:Nu
     return (data_pattern, data_rnd)
 end
 
-"""
 
-# Arguments:
-- `data_rep`: 
-- `obs`: 
-- `color_range::Tuple`: 
-"""
-function plotToyData(data_rep, obs, color_range::Tuple; 
+function plotToyData(
+    data_rep, obs, color_range::Tuple; 
     names::AbstractArray = [], 
     xticks::Union{Nothing, AbstractArray} = nothing,
     yticks::Union{Nothing, AbstractArray} = nothing,
+    legend_label::String = "",
     title::String = "",
-    font_size::Number = 10
+    font_size::Number = 10,
+    fig_size::Tuple = (630, 200)
 )
     name_m1 = isempty(names) ? "Model 1" : names[1]
     name_m2 = isempty(names) ? "Model 2" : names[2]
-    f = Figure(size=(630, 200))
+    f = Figure(size = fig_size)
     mwp.plotValsOnMap!(
         f, obs, "Observations"; 
         pos = (x=1, y=1), 
-        pos_legend = (x=2, y=1), 
-        orient_legend = :horizontal, 
         color_range = color_range,
-        fontsize = font_size, 
-        xlabel = "Longitude", 
-        ylabel = "Latitude",
+        fontsize = font_size,
+        xlabel = "",
+        ylabel = "",
         xticks = xticks,
         yticks = yticks
     )
+    Label(f[1, 1, TopLeft()], "a"; fontsize = 12, font = :bold, padding = (20,0,10,0))
     mwp.plotValsOnMap!(
         f, data_rep[:,:,1], name_m1; 
         pos = (x=1, y=2), 
-        pos_legend=(x=2, y=2), 
-        orient_legend = :horizontal, 
         color_range = color_range,
         fontsize = font_size,
-        xlabel = "Longitude", 
+        xlabel = "",
         ylabel = "",
         xticks = xticks,
         yticks = yticks
     )
+    Label(f[1, 2, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (10,0,10,0))
     mwp.plotValsOnMap!(
         f, data_rep[:,:,2], name_m2; 
         pos = (x=1, y=3), 
-        pos_legend = (x=2, y=3), 
-        orient_legend = :horizontal,
+        pos_legend = (x=1, y=4),
+        orient_legend = :vertical,
+        legend_label = legend_label,
         color_range = color_range, 
-        fontsize = font_size, 
-        xlabel = "Longitude", 
+        fontsize = font_size,
+        xlabel = "",
         ylabel = "",
         xticks = xticks,
         yticks = yticks
     )
+    Label(f[1, 3, TopLeft()], "c"; fontsize = 12, font = :bold, padding = (20,0,10,0))
     if !isempty(title)
         Label(f[0,:], title, fontsize=font_size)
-        rowsize!(f.layout, 1, Relative(0.98))
     end
     return f
 end
@@ -126,6 +122,29 @@ end
 end
 
 
+
+"""
+# Arguments:
+- `data`: last dimension are models
+- `obs`: observational data
+"""
+@model function epwGaussian(
+    data::AbstractArray, 
+    obs::AbstractArray, 
+    prior_params::AbstractArray,
+    hyperprior_sigma::AbstractArray,
+    area_weights::AbstractArray
+)
+    w ~ Dirichlet(prior_params)
+    a ~ Uniform(hyperprior_sigma...)
+    b ~ Uniform(hyperprior_sigma...)
+    weighted_avg = mww.weightedAvg(data, w)
+    sigma_sq ~ InverseGamma(a, b)
+    covariance = Diagonal(vec((1 ./ area_weights) .* sigma_sq))
+    obs ~ Distributions.MvNormal(vec(weighted_avg), covariance)
+end
+
+
 """
     weightsRepModelMCMC(data, obs n_reps, likelihood_fn, args...; n_iter=15000)
 
@@ -151,7 +170,7 @@ function weightsRepModelMCMC(data, obs, n_reps, likelihood_fn, args...; n_iter=1
             args = arguments
         end
         model = likelihood_fn(collect(data_rep), collect(obs), args...)
-        _, posterior_mat, posterior_list = mww.drawFromModel(
+        samples, posterior_mat, posterior_list = mww.drawFromModel(
             model, n_iter, n_chains, n_models
         )
         mean_weights[i] = mean(posterior_mat, dims=1)[1,:,chain]
@@ -170,7 +189,7 @@ function weightsRepModel(data, obs, n_reps, likelihood_fn, latitudes)
     weights = Vector(undef, length(n_reps))
     for (i, i_rep) in enumerate(n_reps)
         data_rep = mwd.repeatModel(data, i_rep; index=2)
-        lh = likelihood_fn(data_rep.data, obs, latitudes)
+        lh = likelihood_fn(Array(data_rep.data), obs, latitudes)
         weights[i] = lh ./ sum(lh)
     end
     return weights
