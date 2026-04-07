@@ -6,13 +6,12 @@ import ModelWeights.Plots as mwp
 
 using CSV
 using DataFrames
-# using DimensionalData
-# using Statistics
-# using YAXArrays
+using DimensionalData
+using Statistics
+using YAXArrays
 
 data_dir = "./data/"
 target_data_dir = "./output/data";
-plot_dir = "./output/plots";
 
 # get model data
 model_ids = mwd.loadModelsFromCSV(
@@ -26,32 +25,26 @@ member_ids = mwd.loadModelsFromCSV(
 push!(member_ids, "CESM2#r10i1p1f1")
 push!(member_ids, "CESM2#r11i1p1f1")
 
-# to use same models for ECS based weights and historical based,  filter out "FIO-ESM-2-0"
-# since ECS value missing for it
-#filter!(x -> !startswith(x, "FIO-ESM-2-0" * mwd.MODEL_MEMBER_DELIM), member_ids)
-
-# TODO: check original data
 model_data =  mw.defineDataMap(
-    #"./work/configs/climwip.yml"; 
-    "/Users/brgrus001/ModelWeightsPaper/work/configs/climwip.yml",
+    joinpath(data_dir, "models-config.yml"),
     dtype = "cmip", 
     constraint = Dict("models" => member_ids, "level_shared" => "member")
 )
 
+# check if we are missing some of the requested data used by Brunner et al.
 # all members found
 members_found = vcat(map(x -> sort(lookup(model_data[x], :member)), collect(keys(model_data)))...);
 members_found = unique(map(x -> split(x, "_")[1], members_found));
 # all members found across all datasets
 members_found = mwd.sharedLevelMembers(model_data);
 members_found = map(x -> split(x, "_")[1], members_found);
-
+# all models found
 models_found = mwd.modelsFromMemberIDs(members_found; uniq=true);
-# members/models used in Brunner et al. that weren't found
+# members/models used in Brunner et al. that weren't found in our data:
 filter(x -> !(x in members_found), member_ids)
 filter(x -> !(x in models_found), model_ids)
 
-filter(x -> startswith(x, "CESM2#"), members_found)
-
+# Process the data
 mwd.apply!(model_data, mwt.filterTimeseries, 2014, 2100; 
     ids = ["tas_CLIM-ann_ssp126", "tas_CLIM-ann_ssp585"]
 )
@@ -76,21 +69,7 @@ obs_era5 = mw.defineDataMap(
         "variables" => ["tas", "psl"]
     )
 )
-obs_era5 = mwd.apply(obs_era5, mwd.setDim, :model, nothing, ["ERA5"])
-# MERRA2 data
-base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool/obs/recipe_MERRA2_20250918_114516/preproc/historical"
-obs_merra2 = mw.defineDataMap(
-    joinpath.(base_dir, data_dirs),
-    data_dirs;
-    dtype = "observations",
-    filename_format = :esmvaltool,
-    constraint = Dict(
-        "variables" => ["tas", "psl"]
-    )
-)
-obs_merra2 = mwd.apply(obs_merra2, mwd.setDim, :model, nothing, ["MERRA2"])
-# TODO: join 2 observational dataests, get ERA5 data up to 2022
-obs_data = obs_era5
+obs_data = mwd.apply(obs_era5, mwd.setDim, :model, nothing, ["ERA5"])
 
 mwd.apply!(obs_data, mwt.filterTimeseries, 1980, 2014; 
     ids = ["tas_CLIM-ann", "psl_CLIM-ann"], 
@@ -104,10 +83,10 @@ mwd.apply!(obs_data, mwt.filterTimeseries, 1995, 2014;
 # reference time period from 1995-2014:
 mean_ref = dropdims(mean(obs_data["tas_CLIM-ann_reference"], dims=:time); dims=:time)
 obs_data["tas_ANOM-ann"] = mwd.anomalies(obs_data["tas_CLIM-ann"], mean_ref)
-obs_data["tas_GM-ANOM-ann"] = mwd.globalMeansNoMissing(obs_data["tas_ANOM-ann"])
+obs_data["tas_GM-ANOM-ann"] = mwd.globalMeans(obs_data["tas_ANOM-ann"])
 obs_ids = filter(x -> !(endswith(x, "_diagnostic")), collect(keys(obs_data)))
 df = mwd.subsetDataMap(obs_data, obs_ids)
-mwd.writeDataToDisk(df, joinpath(target_data_dir, "obs-data.jld2"))
+
 
 # Compute diagnostics for computing model weights
 for (_, dm) in enumerate([model_data, obs_data])
@@ -157,12 +136,13 @@ mwd.renameDict!(model_diagnostics, vcat(diagnostic_ids_indep, diagnostic_ids_per
 ids_clims = ["tas_CLIM-ann_historical", "tas_CLIM-ann_ssp126", "tas_CLIM-ann_ssp585", "tas_CLIM-ann_reference"]
 ids_gms = map(id -> replace(id, "CLIM" => "GM"), ids_clims)
 projections = mwd.subsetDataMap(model_data, ids_clims)
-mwd.apply!(projections, mwd.globalMeansNoMissing; ids = ids_clims, ids_new = ids_gms)
+mwd.apply!(projections, mwd.globalMeans; ids = ids_clims, ids_new = ids_gms)
 mwd.summarizeMembers!(projections)
 # add anomalies to projection data for Global means and spatial field
 tas_gm_ref = mean(projections["tas_GM-ann_reference"], dims=:time)[time = 1]
 tas_clim_ref = mean(projections["tas_CLIM-ann_reference"], dims=:time)[time = 1]
 for (id_gm, id_clim) in zip(ids_gms, ids_clims)
+    @info "processing $id_gm ..."
     mwd.apply!(
         projections, mwd.anomalies, tas_gm_ref;
         ids = [id_gm],
@@ -174,62 +154,35 @@ for (id_gm, id_clim) in zip(ids_gms, ids_clims)
         ids_new = [replace(id_clim, "CLIM" => "ANOM")]
     )
 end
-data = Dict(
-    "diagnostic_data" => Dict("models" => model_diagnostics, "observations" => obs_diagnostics),
-    "projections" => projections
+
+# save model data 
+mwd.writeDataToDisk(
+    model_diagnostics["tas_ANOM"], 
+    joinpath(target_data_dir, "models_historical_tas.jld2")
 )
-mwd.writeDataToDisk(data, joinpath(target_data_dir, "data.jld2"))
+mwd.writeDataToDisk(
+    model_diagnostics["psl_ANOM"],
+    joinpath(target_data_dir, "models_historical_psl.jld2")
+)
 
+# save observational data
+mwd.writeDataToDisk(
+    obs_diagnostics["tas_ANOM"],
+    joinpath(target_data_dir, "obs_tas.jld2")
+)
+mwd.writeDataToDisk(
+    obs_diagnostics["psl_ANOM"],
+    joinpath(target_data_dir, "obs_psl.jld2")
+)
 
-
-
-
-
-
-
-
-
-
-# diagnostics = collect(keys(climwip_weights_orig.config.performance))
-
-# data = mwd.readDataFromDisk(joinpath(data_dir, "example-brunner_data.jld2"))
-# model_data_orig = mwd.convertToYAX(data["diagnostic_data"]["models"]);
-
-# model_data = data["diagnostic_data"]["models"]
-# mwd.summarizeMembers!(model_data)
-# model_data = mwd.convertToYAX(model_data)[diagnostic = Where(x -> x in diagnostics)]
-# models = collect(lookup(model_data, :model))
-# N_models = length(models)
-
-
-# obs_data_orig = mwd.convertToYAX(data["diagnostic_data"]["observations"])
-# obs_data = mwd.convertToYAX(data["diagnostic_data"]["observations"])[model=1, diagnostic = Where(x -> x in diagnostics)]
-
-# # standardize data by observational standard deviation
-# std_obs = std(obs_data, dims=(:lon, :lat))
-# std_obs = dropdims(std_obs; dims=(:lon, :lat))
-# model_data_standardized = model_data ./ std_obs
-# obs_data_standardized = obs_data ./ std_obs
-
-# w_diagnostics = YAXArray(
-#     (Dim{:diagnostic}(diagnostics),),
-#     Float64.(collect(values(climwip_weights_orig.config.performance)))
-# )
-
-# # z-standardize data 
-# mean_models = dropdims(mean(model_data, dims=(:lon, :lat)); dims=(:lon, :lat))
-# std_models = dropdims(std(model_data, dims=(:lon, :lat)); dims = (:lon, :lat))
-# model_data_zstd = (model_data .- mean_models) ./ std_models
-
-# mean_obs = dropdims(mean(obs_data, dims=(:lon, :lat)); dims=(:lon, :lat))
-# std_obs = dropdims(std(obs_data, dims=(:lon, :lat)); dims=(:lon, :lat))
-# obs_data_zstd = (obs_data .- mean_obs) ./ std_obs
-
-
-# s = size(model_data)
-# other_idxs = collect(dimnum(model_data, otherdims(model_data, (:model, :diagnostic))))
-# n_grid_points = reduce(*, s[other_idxs])
-# latitudes = collect(lookup(model_data, :lat));
-
-# members_data = model_data_orig[diagnostic = Where(x -> x in diagnostics)]
-# N_members = size(members_data, :member)
+# save projection data
+# timeseries historical 
+mwd.writeDataToDisk(
+    projections["tas_CLIM-ann_historical"],
+    joinpath(target_data_dir, "models_timeseries_historical_tas.jld2")
+)
+# timeseries projections SSP585
+mwd.writeDataToDisk(
+    projections["tas_CLIM-ann_ssp585"],
+    joinpath(target_data_dir, "models_timeseries_ssp585_tas.jld2")
+)
