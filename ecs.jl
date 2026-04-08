@@ -8,6 +8,7 @@ using CairoMakie
 using CSV
 using DataFrames
 using Dates
+using DimensionalData
 using Dierckx
 using Random
 using Statistics
@@ -17,80 +18,35 @@ using YAXArrays
 include("./config.jl")
 
 # ----------------------------- Data ----------------------------------------- #
+# Get tas data for historical and projections
+proj_anom = readcubedata(mwd.readDataFromDisk(joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_ssp585.jld2")))
+hist_anom = readcubedata(mwd.readDataFromDisk(joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_historical.jld2")))
+
+models = Array(proj_anom.model)
+n_models = length(models)
+
+obs_anom = readcubedata(mwd.readDataFromDisk(joinpath(data_dir, "timeseries-projection-plot", "obs_tas_gms-anomalies-ref.jld2")))[model = At("ERA5")]
+
+
 # Get ECS values
 begin
     base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool"
-    ecs_data_csv = DataFrame(CSV.File(joinpath(data_dir, "ecs-unique.csv")))
+    ecs_data_csv = DataFrame(CSV.File(joinpath(data_dir, "ecs", "ecs-unique.csv")))
     # Just cmip6 models
     ecs_data_csv = filter(row -> row.mip == "CMIP6", ecs_data_csv)
+    ecs_data_csv = filter(row -> row.model in models, ecs_data_csv)
+
     ecs_data = YAXArray(
         (Dim{:model}(String.(ecs_data_csv[!,:model])),),
         ecs_data_csv[!, :ECS]
     )
-    ecs_models = ecs_data.model
-
     # Target ECS-distribution (based on Sherwood et al):
-    data_pdf_ecs_wd = mwd.readDataFromDisk(joinpath(target_data_dir, "ecs_data-lh-fn-wd.jld2"))
+    data_pdf_ecs_wd = mwd.readDataFromDisk(joinpath(data_dir, "ecs", "ecs_data-lh-fn-wd.jld2"))
     xs = data_pdf_ecs_wd["xs"]
     ys = data_pdf_ecs_wd["ys"]
     pdf_ecs = Dierckx.Spline1D(xs, ys, k=data_pdf_ecs_wd["k"], s=data_pdf_ecs_wd["s"])
     lh_fn_ecs(x) = pdf_ecs(x)
 end
-
-# Get tas data historical and projection
-begin
-    paths_data = joinpath.(
-        base_dir,
-        ["historical/recipe_cmip6_historical_tas_timeseries_20250228_081213/preproc/historical/tas_CLIM-ann",
-        "ssp585/recipe_cmip6_ssp585_tas_timeseries_20250226_074213/preproc/ssp585/tas_CLIM-ann"]
-    )
-    data_hist_proj_members = mwd.defineDataMap(
-        paths_data, 
-        ["historical-tas", "ssp585-tas"]; 
-        filename_format = :esmvaltool_cmip6,
-        constraint = Dict("level_shared" => "model")
-    )
-    data_hist_proj = mwd.summarizeMembers(data_hist_proj_members)
-
-    # Data reference period
-    data_ref = mwt.filterTimeseries(data_hist_proj["historical-tas"], 1995, 2014)
-    # Data projections
-    data_proj = data_hist_proj["ssp585-tas"]
-    data_proj = mwt.filterTimeseries(data_proj, 2015, 2100)
-    # Data historical
-    data_hist = mwt.filterTimeseries(data_hist_proj["historical-tas"], 1950, 2014)
-
-    models = intersect(ecs_models, data_ref.model, data_proj.model, data_hist.model)
-    data_proj = data_proj[model = Where(x -> x in models)]
-    data_ref = data_ref[model = Where(x -> x in models)]
-    data_hist = data_hist[model = Where(x -> x in models)]
-    # compute anomalies
-    proj_anom = data_proj .- dropdims(mean(data_ref; dims=:time), dims=:time)
-    hist_anom = data_hist .- dropdims(mean(data_ref; dims=:time), dims=:time)
-    ecs_data = ecs_data[model = Where(x -> x in models)]
-
-    n_models = length(models)
-
-    # Observational tas-data
-    path_obs_data = joinpath(base_dir, "obs/recipe_ERA5_20250718_180812/preproc/historical")
-    data_dirs = ["tas_CLIM-ann"]
-    obs_data = mw.defineDataMap(
-        joinpath.(path_obs_data, data_dirs),
-        data_dirs;
-        dtype = "observations",
-        filename_format = :esmvaltool,
-        constraint = Dict(
-            "variables" => ["tas"]
-        )
-    )
-    obs_tas = mwt.filterTimeseries(obs_data["tas_CLIM-ann"], 1950, 2014)[model = 1]
-    # Get observational anomalies
-    times = Dates.year.(obs_tas.time)
-    indices_ref = findall(x -> x >= 1995 && x <= 2014, times)
-    obs_anom = obs_tas .- dropdims(mean(obs_tas[time=indices_ref]; dims=:time); dims=:time)
-    obs_anom_gms = mwd.globalMeansNoMissing(obs_anom)
-end
-# ---------------------------------------------------------------------------------------- #
 
 # Expected ECS (prior + posterior) for different Dirichlet priors
 n_iter = 10000; n_chains = 10;
@@ -115,9 +71,6 @@ for (i, alphas) in enumerate(params)
         weights_posteriors[i] = ws_posterior_dirichlet
     end
 end
-mwd.writeDataToDisk(weights_posteriors, joinpath(target_data_dir, "ecs-weights-posteriors-different-dirichlet-priors.jld2"))
-mwd.writeDataToDisk(weights_priors, joinpath(target_data_dir, "ecs-weights-priors-different-dirichlet-priors.jld2"))
-
 
 chain = 1;
 titles = ["Prior: Dirichlet([1,..., 1])", "Prior: Dirichlet([1/N, ..., 1/N])"]
@@ -141,10 +94,10 @@ f_expected_ecs = mwp.plotExpectedECS(
     color_posterior = COLORS_ECS[2],
     alpha_densities = 0.8
 )
-mwp.savePlot(f_expected_ecs, joinpath(plot_dir, "fig8.pdf"); overwrite=true)
+mwp.savePlot(f_expected_ecs, joinpath(plot_dir, "fig8.pdf"))
 
 
-# Bring weights together
+# Bring mean weights together
 ws_posterior_dirichlet = weights_posteriors[2] # using Dirichlet(1/N) prior
 begin
     mean_weights_dirichlet = mean(ws_posterior_dirichlet; dims=1)
@@ -170,18 +123,18 @@ begin
         [Array(mw_dirichlet_yax.weight)..., Array(iw_weights.weight)..., Array(eq_weights.weight)...]
     )
 end
-mwd.writeDataToDisk(all_weights, joinpath(target_data_dir, "all-weights-ecs.jld2"))
+mwd.writeDataToDisk(all_weights, joinpath(target_data_dir, "all-weights-ecs.jld2"); add_hour = false)
 # mwp.plotWeights(all_weights; one_plot=true, nbanks=3)
 
 #----------------------------- Make projection plots -----------------------------# 
 df = mwd.DataMap();
 df["ssp585"] = proj_anom
 df["historical"] = hist_anom
-mwd.apply!(df, mwd.globalMeansNoMissing)
 
-n_models = size(df["ssp585"], :model)
-# add multi-model mean 
-ws = deepcopy(all_weights[weight=[11, 1, 2]])
+# put weight vectors from individual perfromance weighting, from a single chain 
+# (from ensemble performance weighting) and the  multi-model mean in one Array
+chain = 1; idx_ipw = 11
+ws = deepcopy(all_weights[weight=[idx_ipw, chain, 2]])
 names = Array(ws.weight)
 names[2] = "Ensemble performance weighting"
 names[3] = "Multi-Model-Mean"
@@ -192,17 +145,12 @@ years_hist = Array(Dates.year.(df["historical"].time))
 years_proj = Array(Dates.year.(df["ssp585"].time))
 years_all = vcat(years_hist, years_proj)
 
-iw_weights = all_weights[weight = Where(x -> x == "individual performance weighting")]
-
 chain = 1;
 alpha = 0.5
-
 idx = 1 # Prior Dirichlet(1) (for appendix)
 idx = 2 # Prior Dirichlet(1/N)
 ws_posterior_dirichlet = weights_posteriors[idx] 
 ws_prior_dirichlet = weights_priors[idx]
-
-
 
 add_prior = true;
 begin
@@ -293,10 +241,10 @@ begin
         end
     end
     # add observational data
-    Makie.lines!(ax, years_hist, obs_anom_gms.data, color=:black, label = "Observational data")
+    Makie.lines!(ax, years_hist, obs_anom.data, color=:black, label = "Observational data")
     axislegend(ax, position = :lt, merge=true)
     f
 end
 mwp.savePlot(f, joinpath(plot_dir, "fig9.pdf"); overwrite=true)
-#mwp.savePlot(f, joinpath(plot_dir, "figA1.pdf"); overwrite=true) # for idx=1 (Prior: Dir(1))
+mwp.savePlot(f, joinpath(plot_dir, "figA1.pdf"); overwrite=true) # for idx=1 (Prior: Dir(1))
 
