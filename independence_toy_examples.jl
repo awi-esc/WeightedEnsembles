@@ -6,18 +6,17 @@ using DimensionalData
 using Random
 
 include("config.jl")
+include("fns_independence.jl")
 
 # ---------------------------- Load data ------------------------------------------------- #
 diagnostics = ["tas_ANOM", "psl_ANOM"]
 
-model_data = mwd.readDataFromDisk(joinpath(target_data_dir, "models_historical_tas.jld2"))
-model_data = mwd.summarizeMembers(model_data)
+model_data = mwd.readDataFromDisk(joinpath(data_dir, "diagnostics", "models_tas_ANOM-GM_1980-2014.jld2"))
 models = collect(lookup(model_data, :model))
 N_models = length(models)
 
-obs_data = mwd.readDataFromDisk(joinpath(target_data_dir, "obs_tas.jld2"))[model = 1]
+obs_data = mwd.readDataFromDisk(joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.jld2"))[model = 1]
 
-include("fns_independence.jl")
 latitudes = Array(obs_data.lat)
 s = size(obs_data)[1:2]
 
@@ -30,7 +29,7 @@ obs = copy(obs_data)
 
 # Constructed data based on observations
 Random.seed!(1712)
-data_pattern, data_rnd = makeToyData(data_real, obs; fixed_sigma=true)
+data_pattern, data_rnd = makeToyData(data_real, obs; fixed_sigma=true, sigma=2)
 
 # sanity check mean squared errors:
 mses_pattern = round.(mwd.distancesData(data_pattern, obs; metric=:mse), digits=2).data
@@ -194,6 +193,7 @@ aw_mat = mwd.areaWeightMatrix(latitudes, Bool.(fill(false, s[1], s[2])))
 model = epwGaussian(collect(data_rep), vec(collect(obs)), prior, aw_mat)
 
 n_iter=15000; n_chains = 5;
+Random.seed!(2310)
 samples, posterior_mat, posterior_list = mww.drawFromModel(
     model, n_iter, n_chains, n_models;
 )
