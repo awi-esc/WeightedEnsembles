@@ -10,56 +10,76 @@ using DimensionalData
 using Statistics
 using YAXArrays
 
+# --------------------- Load model data --------------------- #
 data_dir = "./data/"
-target_data_dir = "./output/data";
-
-# get model data
-model_ids = mwd.loadModelsFromCSV(
-    joinpath(data_dir, "cmip6-models-brunner-et-al.csv"), "Model"
-);
-member_ids = mwd.loadModelsFromCSV(
-    joinpath(data_dir, "cmip6-models-brunner-et-al.csv"), "Model"; col_variants = "Variants"
-);
-# apparently, CESM2 r1i1p1f1 and r2i1pf1f1 were replaced by newer runs because of a bug in the first version, 
-# they are now called: (see https://bb.cgd.ucar.edu/cesm/threads/query-about-cmip6-cesm2-model-under-ssp585.5718/)
-push!(member_ids, "CESM2#r10i1p1f1")
-push!(member_ids, "CESM2#r11i1p1f1")
-
-model_data =  mw.defineDataMap(
-    joinpath(data_dir, "models-config.yml"),
-    dtype = "cmip", 
-    constraint = Dict("models" => member_ids, "level_shared" => "member")
+base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool"
+paths_data = joinpath.(
+    base_dir,
+    ["historical/recipe_cmip6_historical_tas_timeseries_20250228_081213/preproc/historical/tas_CLIM-ann",
+     "ssp585/recipe_cmip6_ssp585_tas_timeseries_20250226_074213/preproc/ssp585/tas_CLIM-ann",
+     "historical/recipe_cmip6_historical_psl_timeseries_20250313_130922/preproc/historical/psl_CLIM-ann"
+    ]
 )
-
-# check if we are missing some of the requested data used by Brunner et al.
-# all members found
-members_found = vcat(map(x -> sort(lookup(model_data[x], :member)), collect(keys(model_data)))...);
-members_found = unique(map(x -> split(x, "_")[1], members_found));
-# all members found across all datasets
-members_found = mwd.sharedLevelMembers(model_data);
-members_found = map(x -> split(x, "_")[1], members_found);
-# all models found
-models_found = mwd.modelsFromMemberIDs(members_found; uniq=true);
-# members/models used in Brunner et al. that weren't found in our data:
-filter(x -> !(x in members_found), member_ids)
-filter(x -> !(x in models_found), model_ids)
-
-# Process the data
-mwd.apply!(model_data, mwt.filterTimeseries, 2014, 2100; 
-    ids = ["tas_CLIM-ann_ssp126", "tas_CLIM-ann_ssp585"]
+data_hist_proj_members = mwd.defineDataMap(
+    paths_data, 
+    ["tas_annual_historical", "tas_annual_ssp585", "psl_annual_historical"]; 
+    filename_format = :esmvaltool_cmip6,
+    constraint = Dict("level_shared" => "model")
 )
+model_data = mwd.summarizeMembers(data_hist_proj_members)
+
+ecs_data_csv = DataFrame(CSV.File(joinpath(data_dir, "ecs", "ecs-unique.csv")))
+# Just cmip6 models
+ecs_data_csv = filter(row -> row.mip == "CMIP6", ecs_data_csv)
+ecs_data = YAXArray(
+    (Dim{:model}(String.(ecs_data_csv[!,:model])),),
+    ecs_data_csv[!, :ECS]
+)
+ecs_models = ecs_data.model
+
+# --------------------- Process model data --------------------- #
+mwd.apply!(
+    model_data, mwt.filterTimeseries, 1950, 2014; 
+    ids = ["tas_annual_historical", "psl_annual_historical"]
+)
+mwd.apply!(model_data, mwt.filterTimeseries, 2015, 2100; ids = ["tas_annual_ssp585"])
+
+
 mwd.apply!(model_data, mwt.filterTimeseries, 1980, 2014; 
-    ids = ["tas_CLIM-ann_historical", "psl_CLIM-ann_historical"], 
-    ids_new = ["tas_CLIM-ann_diagnostic", "psl_CLIM-ann_diagnostic"]
+    ids = ["tas_annual_historical", "psl_annual_historical"], 
+    ids_new = ["tas_annual_diagnostic", "psl_annual_diagnostic"]
 )
 mwd.apply!(model_data, mwt.filterTimeseries, 1995, 2014; 
-    ids = ["tas_CLIM-ann_historical"], 
-    ids_new = ["tas_CLIM-ann_reference"]
+    ids = ["tas_annual_historical"], ids_new =  ["tas_annual_reference"]
+)
+# make sure that only models available for all time periods are included:
+mwd.subsetModelData!(model_data, mwd.MODEL_LEVEL)
+mwd.apply!(model_data, yax ->  yax[model = Where(x -> x in ecs_models)])
+
+# save timeseries data:
+mwd.writeDataToDisk(
+   model_data["tas_annual_historical"], 
+   joinpath(data_dir, "timeseries", "models_tas_annual_historical.jld2"); 
+   add_hour = false
+)
+mwd.writeDataToDisk(
+   model_data["psl_annual_historical"], 
+   joinpath(data_dir, "timeseries", "models_psl_annual_historical.jld2"); add_hour = false
+)
+mwd.writeDataToDisk(
+   model_data["tas_annual_ssp585"], 
+   joinpath(data_dir, "timeseries", "models_tas_annual_ssp585.jld2"); add_hour = false
 )
 
-# get observational data (ERA5)
+# TODO: write used models to CSV file
+# also add used model runs per model
+models = Array(model_data["tas_annual_historical"].model)
+
+
+
+# --------------------- Load observational data (ERA5) --------------------- #
 base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool/obs/recipe_ERA5_20250718_180812/preproc/historical"
-data_dirs = ["psl_CLIM-ann", "psl_CLIM", "tas_CLIM-ann", "tas_CLIM"]
+data_dirs = ["psl_CLIM-ann", "tas_CLIM-ann"]
 obs_era5 = mw.defineDataMap(
     joinpath.(base_dir, data_dirs),
     data_dirs;
@@ -70,119 +90,107 @@ obs_era5 = mw.defineDataMap(
     )
 )
 obs_data = mwd.apply(obs_era5, mwd.setDim, :model, nothing, ["ERA5"])
+mwd.renameDict!(obs_data, ["psl_CLIM-ann", "tas_CLIM-ann"], ["psl_annual", "tas_annual"])
 
+mwd.apply!(obs_data, mwt.filterTimeseries, 1950, 2014; ids = ["tas_annual", "psl_annual"])
+# save timeseries data:
+mwd.writeDataToDisk(
+    obs_data["tas_annual"], 
+    joinpath(data_dir, "timeseries", "obs_tas_annual_historical.jld2")
+)
+mwd.writeDataToDisk(
+    obs_data["psl_annual"], 
+    joinpath(data_dir, "timeseries", "obs_psl_annual_historical.jld2")
+)
+        
+# --------------------- Process observational data (ERA5) --------------------- #
 mwd.apply!(obs_data, mwt.filterTimeseries, 1980, 2014; 
-    ids = ["tas_CLIM-ann", "psl_CLIM-ann"], 
-    ids_new = ["tas_CLIM-ann_diagnostic", "psl_CLIM-ann_diagnostic"]
+    ids = ["tas_annual", "psl_annual"], 
+    ids_new = ["tas_annual_diagnostic", "psl_annual_diagnostic"]
 )
 mwd.apply!(obs_data, mwt.filterTimeseries, 1995, 2014; 
-    ids = ["tas_CLIM-ann"], 
-    ids_new = ["tas_CLIM-ann_reference"]
+    ids = ["tas_annual"], ids_new = ["tas_annual_reference"]
 )
-# for observational data also save the anomalies of the annual climatologies wrt the 
-# reference time period from 1995-2014:
-mean_ref = dropdims(mean(obs_data["tas_CLIM-ann_reference"], dims=:time); dims=:time)
-obs_data["tas_ANOM-ann"] = mwd.anomalies(obs_data["tas_CLIM-ann"], mean_ref)
-obs_data["tas_GM-ANOM-ann"] = mwd.globalMeans(obs_data["tas_ANOM-ann"])
-obs_ids = filter(x -> !(endswith(x, "_diagnostic")), collect(keys(obs_data)))
-df = mwd.subsetDataMap(obs_data, obs_ids)
 
-
-# Compute diagnostics for computing model weights
+# --------------------- Compute diagnostics --------------------- #
 for (_, dm) in enumerate([model_data, obs_data])
     mwd.apply!(
         dm, mwd.climatology;
-        ids = ["tas_CLIM-ann_diagnostic", "psl_CLIM-ann_diagnostic"],
-        ids_new = ["tas_CLIM_diagnostic", "psl_CLIM_diagnostic"]
+        ids = ["tas_annual_diagnostic", "psl_annual_diagnostic"],
+        ids_new = ["tas_CLIM", "psl_CLIM"]
     )
     mwd.apply!(
         dm, mwd.anomaliesGM;
-        ids = ["tas_CLIM_diagnostic", "psl_CLIM_diagnostic"],
-        ids_new = ["tas_ANOM_diagnostic", "psl_ANOM_diagnostic"]
+        ids = ["tas_CLIM", "psl_CLIM"],
+        ids_new = ["tas_ANOM-GM", "psl_ANOM-GM"]
     )
-    mwd.apply!(
-        dm, mwt.linearTrend;
-        ids = ["tas_CLIM-ann_diagnostic", "psl_CLIM-ann_diagnostic"], 
-        ids_new = ["tas_TREND_diagnostic", "psl_TREND_diagnostic"]
-    )
-    mwd.apply!(
-        dm, mwt.detrend;
-        ids = ["tas_CLIM-ann_diagnostic", "psl_CLIM-ann_diagnostic"],
-        ids_new = ["tas_CLIM-ann-detrended_diagnostic", "psl_CLIM-ann-detrended_diagnostic"]
-    )
-
-    for v in ["tas", "psl"]
-        dm[v * "_STD_diagnostic"] = mapslices(
-            x -> Statistics.std(x), dm[v * "_CLIM-ann-detrended_diagnostic"], dims=(:time,)
-        )
-    end
 end
+diagnostic_ids = ["tas_ANOM-GM", "psl_ANOM-GM"];
+obs_diagnostics = mwd.subsetDataMap(obs_data, diagnostic_ids)
+model_diagnostics = mwd.subsetDataMap(model_data, diagnostic_ids)
+# save observational diagnostic data
+mwd.writeDataToDisk(
+    obs_diagnostics["tas_ANOM-GM"], 
+    joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.jld2"); 
+    add_hour = false
+)
+mwd.writeDataToDisk(
+    obs_diagnostics["psl_ANOM-GM"], 
+    joinpath(data_dir, "diagnostics", "obs_psl_ANOM-GM_1980-2014.jld2"); 
+    add_hour = false
+)
+# save model diagnostic data
+mwd.writeDataToDisk(
+    model_diagnostics["tas_ANOM-GM"], 
+    joinpath(data_dir, "diagnostics", "models_tas_ANOM-GM_1980-2014.jld2"); 
+    add_hour = false
+)
+mwd.writeDataToDisk(
+    model_diagnostics["psl_ANOM-GM"],
+    joinpath(data_dir, "diagnostics", "models_psl_ANOM-GM_1980-2014.jld2"); 
+    add_hour = false
+)
 
-diagnostic_ids_perform = [
-    "tas_TREND_diagnostic", "tas_ANOM_diagnostic", "psl_ANOM_diagnostic",
-    "tas_STD_diagnostic", "psl_STD_diagnostic"
-];
-diagnostic_ids_indep = ["tas_CLIM_diagnostic", "psl_CLIM_diagnostic"];
-model_diagnostics = mwd.subsetDataMap(model_data, vcat(diagnostic_ids_indep, diagnostic_ids_perform))
-obs_diagnostics = mwd.subsetDataMap(obs_data, diagnostic_ids_perform)
+# --------------------- Process projection data --------------------- #
+ids_ts = ["tas_annual_historical", "tas_annual_ssp585", "tas_annual_reference"]
+projections = mwd.subsetDataMap(model_data, ids_ts)
 
-# shorten ids:
-ids_perform = map(x -> String(split(x, "_diagnostic")[1]), diagnostic_ids_perform)
-ids_indep = map(x -> String(split(x, "_diagnostic")[1]), diagnostic_ids_indep)
-mwd.renameDict!(obs_diagnostics, diagnostic_ids_perform, ids_perform)
-mwd.renameDict!(model_diagnostics, vcat(diagnostic_ids_indep, diagnostic_ids_perform), vcat(ids_indep, ids_perform))
+# timeseries global means of tas data
+ids_annual_gms = map(id -> replace(id, "annual" => "annual-GM"), ids_ts)
+mwd.apply!(projections, mwd.globalMeans; ids = ids_ts, ids_new = ids_annual_gms)
 
-# Get projection data
-ids_clims = ["tas_CLIM-ann_historical", "tas_CLIM-ann_ssp126", "tas_CLIM-ann_ssp585", "tas_CLIM-ann_reference"]
-ids_gms = map(id -> replace(id, "CLIM" => "GM"), ids_clims)
-projections = mwd.subsetDataMap(model_data, ids_clims)
-mwd.apply!(projections, mwd.globalMeans; ids = ids_clims, ids_new = ids_gms)
-mwd.summarizeMembers!(projections)
-# add anomalies to projection data for Global means and spatial field
-tas_gm_ref = mean(projections["tas_GM-ann_reference"], dims=:time)[time = 1]
-tas_clim_ref = mean(projections["tas_CLIM-ann_reference"], dims=:time)[time = 1]
-for (id_gm, id_clim) in zip(ids_gms, ids_clims)
-    @info "processing $id_gm ..."
+# timeseries anomalies of global means of tas data with respect to reference period 
+tas_gm_ref = mean(projections["tas_annual-GM_reference"], dims=:time)[time = 1]
+
+for id_gm in ids_annual_gms
     mwd.apply!(
         projections, mwd.anomalies, tas_gm_ref;
         ids = [id_gm],
         ids_new = [replace(id_gm, "GM" => "GM-ANOM")]
     )
-    mwd.apply!(
-        projections, mwd.anomalies, tas_clim_ref;
-        ids = [id_clim],
-        ids_new = [replace(id_clim, "CLIM" => "ANOM")]
-    )
 end
 
-# save model data 
 mwd.writeDataToDisk(
-    model_diagnostics["tas_ANOM"], 
-    joinpath(target_data_dir, "models_historical_tas.jld2")
+    projections["tas_annual-GM-ANOM_historical"],
+    joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_historical.jld2"); 
+    add_hour = false
 )
 mwd.writeDataToDisk(
-    model_diagnostics["psl_ANOM"],
-    joinpath(target_data_dir, "models_historical_psl.jld2")
-)
-
-# save observational data
-mwd.writeDataToDisk(
-    obs_diagnostics["tas_ANOM"],
-    joinpath(target_data_dir, "obs_tas.jld2")
-)
-mwd.writeDataToDisk(
-    obs_diagnostics["psl_ANOM"],
-    joinpath(target_data_dir, "obs_psl.jld2")
+    projections["tas_annual-GM-ANOM_ssp585"],
+    joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_ssp585.jld2"); 
+    add_hour = false
 )
 
-# save projection data
-# timeseries historical 
+# for observational data also save the anomalies of the annual climatologies wrt the 
+# reference time period from 1995-2014:
+mean_ref = dropdims(mean(obs_data["tas_annual_reference"], dims=:time); dims=:time)
+obs_data["tas_ANOM-ann"] = mwd.anomalies(obs_data["tas_annual"], mean_ref)
+obs_data["tas_ANOM-ann-GM"] = mwd.globalMeans(obs_data["tas_ANOM-ann"])
+
 mwd.writeDataToDisk(
-    projections["tas_CLIM-ann_historical"],
-    joinpath(target_data_dir, "models_timeseries_historical_tas.jld2")
+    obs_data["tas_ANOM-ann-GM"],
+    joinpath(data_dir, "timeseries-projection-plot", "obs_tas_gms-anomalies-ref.jld2"); 
+    add_hour = false
 )
-# timeseries projections SSP585
-mwd.writeDataToDisk(
-    projections["tas_CLIM-ann_ssp585"],
-    joinpath(target_data_dir, "models_timeseries_ssp585_tas.jld2")
-)
+
+
