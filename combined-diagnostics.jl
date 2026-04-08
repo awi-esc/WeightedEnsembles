@@ -12,9 +12,9 @@ using Statistics
 using YAXArrays
 # --------------------------  Generate toy data -------------------------- #
 diagnostics = ["tas_ANOM", "psl_ANOM"];
-obs_tas = mwd.readDataFromDisk(joinpath(target_data_dir, "obs_tas.jld2"))[model = 1]
-obs_psl = mwd.readDataFromDisk(joinpath(target_data_dir, "obs_psl.jld2"))[model = 1]
-obs = copy(mwd.mergeYAX([obs_tas, obs_psl], :diagnostic, diagnostics))
+obs_tas = readcubedata(mwd.readDataFromDisk(joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.jld2")))[model = 1]
+obs_psl = readcubedata(mwd.readDataFromDisk(joinpath(data_dir, "diagnostics", "obs_psl_ANOM-GM_1980-2014.jld2")))[model = 1]
+obs = mwd.mergeYAX([obs_tas, obs_psl], :diagnostic, diagnostics)
 
 so = size(obs)
 dims_obs = dims(obs)
@@ -111,8 +111,7 @@ begin
     rowsize!(f1.layout, 2, Relative(0.05))
     f1
 end
-mwp.savePlot(f1, joinpath(plot_dir, "fig2.pdf"); overwrite=true)
-
+mwp.savePlot(f1, joinpath(plot_dir, "fig2.pdf"))
 
 latitudes = collect(lookup(obs.lat))
 aw_mat = mwd.areaWeightMatrix(latitudes, Bool.(fill(false, so[1], so[2])))
@@ -140,7 +139,7 @@ MCMCChains.ess_rhat(samples_joint)
 
 chain = 1;
 mean_w_joint = mean(posterior_mat, dims=1)
-round.(mean_w_joint[1,:,chain], digits=3)
+round.(mean_w_joint[1,:,chain], digits=2)
 mwp.boxplotMCMCWeights(
     posterior_list, Array(toy_model.model); chain=chain, chains_prior=prior_list
 )
@@ -156,7 +155,7 @@ model_d1 = mww.weightedAvgModel(
 )
 Random.seed!(710)
 samples_d1, posterior_mat, posterior_list = mww.drawFromModel(
-    model_d1, n_iter, n_chains, 2;
+    model_d1, n_iter, n_chains, n_models;
 )
 mean1 = mean(posterior_mat, dims=1)
 round.(mean1[1,:,chain], digits=2)
