@@ -2,6 +2,8 @@ import ModelWeights.Plots as mwp
 
 using CairoMakie
 using Distributions
+using LaTeXStrings
+using Random
 using Statistics
 using Turing
 
@@ -77,15 +79,16 @@ begin
     )
     f
 end
-mwp.savePlot(f, joinpath(plot_dir, "fig1a.pdf"); overwrite=true)
+mwp.savePlot(f, joinpath(plot_dir, "fig1a.pdf"))
 
 # ----------------- show influence of prior on weighted averages ----------------- #
 begin
     n_models = 38;
     distr = Distributions.Normal(3, 1)
     lh_fn(x) = Distributions.pdf.(distr, x)
-    generated_ecs = rand(distr, n_models)
-    sort(generated_ecs)
+    Random.seed!(710)
+    generated_data = rand(distr, n_models)
+    sort(generated_data)
 
     n_iter = 10000; n_chains = 1;
     xs = 0.5:0.01:6
@@ -98,19 +101,19 @@ begin
     ax = Axis(f[1,1], xlabel = "Generated data", ylabel = "Density")
     for (i, alphas) in enumerate(params)
         model_ecs_dirichlet = mww.weightedAvgModelECS(
-            generated_ecs, alphas, lh_fn, false
+            generated_data, alphas, lh_fn, false
         )
         samples_prior_dirichlet = Turing.sample(model_ecs_dirichlet, Prior(), MCMCThreads(), n_iter, n_chains)
         ws_prior_dirichlet, ws_prior_list = mww.drawFromSamples(samples_prior_dirichlet, n_iter, n_chains, n_models)
         alpha = round(alphas[1], digits=2)
         # compute weighted averages
-        mstar_ecs_prior =  ws_prior_dirichlet[:,:,1] * generated_ecs
+        mstar_ecs_prior =  ws_prior_dirichlet[:,:,1] * generated_data
         Makie.density!(ax, mstar_ecs_prior, color = COLORS[i], alpha = 0.8, label = labels[i])        
     end
     # add ECS values of individual models
     Makie.lines!(ax, xs, lh_fn.(xs), label="Source distribution", color=:black)
-    Makie.scatter!(ax, generated_ecs, fill(0, n_models), color = :darkgrey, marker = '*', markersize = 30, label = "Individual models")
-    Makie.scatter!(ax, mean(generated_ecs), 0, color=:red, marker = '*', markersize = 30, label = "MMM")
+    Makie.scatter!(ax, generated_data, fill(0, n_models), color = :darkgrey, marker = '*', markersize = 30, label = "Individual models")
+    Makie.scatter!(ax, mean(generated_data), 0, color=:red, marker = '*', markersize = 30, label = "MMM")
     axislegend(merge = true, framevisible = false, position = :lt, patchsize = (10,10))
     Label(f[1, 1, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (10,0,10,0))
     f
@@ -145,7 +148,7 @@ for (i,x) in enumerate([1, 10])
 end
 f1
 
-# Inverse Gamma distriubtions (not in paper)
+# Inverse Gamma distriubtions
 f2 = Figure()
 ax2 = Axis(f2[1,1], title = "InverseGamma distributions")
 xs = 0:0.01:5
