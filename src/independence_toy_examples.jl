@@ -11,11 +11,11 @@ include("fns_independence.jl")
 # ---------------------------- Load data ------------------------------------------------- #
 diagnostics = ["tas_ANOM", "psl_ANOM"]
 
-model_data = mwd.readDataFromDisk(joinpath(data_dir, "diagnostics", "models_tas_ANOM-GM_1980-2014.jld2"))
+model_data = open_dataset(joinpath(data_dir, "diagnostics", "models_tas_ANOM-GM_1980-2014.nc"))["tas_ANOM-GM"]
 models = collect(lookup(model_data, :model))
 N_models = length(models)
 
-obs_data = mwd.readDataFromDisk(joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.jld2"))[model = 1]
+obs_data = open_dataset(joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.nc"))["tas_ANOM-GM"][model=1]
 
 latitudes = Array(obs_data.lat)
 s = size(obs_data)[1:2]

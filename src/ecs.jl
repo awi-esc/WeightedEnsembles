@@ -19,14 +19,13 @@ include("./config.jl")
 
 # ----------------------------- Data ----------------------------------------- #
 # Get tas data for historical and projections
-proj_anom = readcubedata(mwd.readDataFromDisk(joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_ssp585.jld2")))
-hist_anom = readcubedata(mwd.readDataFromDisk(joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_historical.jld2")))
+proj_anom = readcubedata(open_dataset(joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_ssp585.nc"))["tas_annual-GM-ANOM_ssp585"])
+hist_anom = readcubedata(open_dataset(joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_historical.nc"))["tas_annual-GM-ANOM_historical"])
 
 models = Array(proj_anom.model)
 n_models = length(models)
 
-obs_anom = readcubedata(mwd.readDataFromDisk(joinpath(data_dir, "timeseries-projection-plot", "obs_tas_gms-anomalies-ref.jld2")))[model = At("ERA5")]
-
+obs_anom = readcubedata(open_dataset(joinpath(data_dir, "timeseries-projection-plot", "obs_tas_gms-anomalies-ref.nc"))["tas_ANOM-ann-GM"])[model = At("ERA5")]
 
 # Get ECS values
 begin

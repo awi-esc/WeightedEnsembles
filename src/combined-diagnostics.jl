@@ -3,7 +3,6 @@ import ModelWeights.Data as mwd
 import ModelWeights.Weights as mww
 import ModelWeights.Plots as mwp
 
-# using KernelDensity
 using DimensionalData
 using Distributions
 using MCMCChains
@@ -12,8 +11,8 @@ using Statistics
 using YAXArrays
 # --------------------------  Generate toy data -------------------------- #
 diagnostics = ["tas_ANOM", "psl_ANOM"];
-obs_tas = readcubedata(mwd.readDataFromDisk(joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.jld2")))[model = 1]
-obs_psl = readcubedata(mwd.readDataFromDisk(joinpath(data_dir, "diagnostics", "obs_psl_ANOM-GM_1980-2014.jld2")))[model = 1]
+obs_tas = readcubedata(open_dataset(joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.nc"))["tas_ANOM-GM"])[model=1]
+obs_psl = readcubedata(open_dataset(joinpath(data_dir, "diagnostics", "obs_psl_ANOM-GM_1980-2014.nc"))["psl_ANOM-GM"])[model=1]
 obs = mwd.mergeYAX([obs_tas, obs_psl], :diagnostic, diagnostics)
 
 so = size(obs)
