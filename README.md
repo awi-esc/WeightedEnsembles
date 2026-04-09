@@ -1,6 +1,6 @@
 # WeightedEnsembles
 
-This repository contains all code for our paper **On combining climate moodels into weighted ensembles**.
+This repository contains all code for our paper **On combining climate models into weighted ensembles**.
 
 ## Data
 
