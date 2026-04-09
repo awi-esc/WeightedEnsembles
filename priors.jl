@@ -77,6 +77,7 @@ begin
         framevisible = false, 
         patchsize = (10, 10)
     )
+    Label(f[1, 1, TopLeft()], "a"; fontsize = 12, font = :bold, padding = (10,0,10,0))
     f
 end
 mwp.savePlot(f, joinpath(plot_dir, "fig1a.pdf"))
