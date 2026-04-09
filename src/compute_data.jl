@@ -71,11 +71,20 @@ mwd.writeDataToDisk(
    joinpath(data_dir, "timeseries", "models_tas_annual_ssp585.jld2"); add_hour = false
 )
 
-# TODO: write used models to CSV file
+# Write used models to CSV files
 # also add used model runs per model
 models = Array(model_data["tas_annual_historical"].model)
+CSV.write(joinpath(data_dir, "models.csv"), DataFrame(model=models))
 
+data = mwd.apply(data_hist_proj_members, mwd.subsetModelData, models)
 
+df1 = mwd.listModels(data["psl_annual_historical"])
+df2 = mwd.listModels(data["tas_annual_historical"])
+df3 = mwd.listModels(data["tas_annual_ssp585"])
+
+CSV.write(joinpath(data_dir, "members-psl-historical.csv"), df1)
+CSV.write(joinpath(data_dir, "members-tas-historical.csv"), df2)
+CSV.write(joinpath(data_dir, "members-tas-ssp585.csv"), df3)
 
 # --------------------- Load observational data (ERA5) --------------------- #
 base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool/obs/recipe_ERA5_20250718_180812/preproc/historical"
