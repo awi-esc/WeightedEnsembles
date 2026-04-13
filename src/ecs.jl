@@ -135,10 +135,14 @@ years_all = vcat(years_hist, years_proj)
 
 chain = 1;
 alpha = 0.5
+
+# choose weights
 idx = 1 # Prior Dirichlet(1) (for appendix)
 idx = 2 # Prior Dirichlet(1/N) (main text)
-ws_posterior_dirichlet = weights_posteriors[idx] 
-ws_prior_dirichlet = weights_priors[idx]
+begin
+    ws_posterior_dirichlet = weights_posteriors[idx] 
+    ws_prior_dirichlet = weights_priors[idx]
+end
 
 # choose which weightings to show
 begin
