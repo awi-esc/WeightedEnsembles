@@ -29,7 +29,6 @@ obs_anom = readcubedata(open_dataset(joinpath(data_dir, "timeseries-projection-p
 
 # Get ECS values
 begin
-    base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool"
     ecs_data_csv = DataFrame(CSV.File(joinpath(data_dir, "ecs", "ecs-unique.csv")))
     # Just cmip6 models
     ecs_data_csv = filter(row -> row.mip == "CMIP6", ecs_data_csv)
@@ -109,7 +108,7 @@ begin
 
     # Add individual performance weighting: compute weights based on each model's ECS value
     iw_weights = mww.likelihoodWeights(
-    Array(ecs_data.data), Array(ecs_data.model), lh_fn_ecs, "individual performance weighting"
+        Array(ecs_data.data), Array(ecs_data.model), lh_fn_ecs, "individual performance weighting"
     )
     # Add equal weights 
     eq_weights = YAXArray(
@@ -130,16 +129,6 @@ df = mwd.DataMap();
 df["ssp585"] = proj_anom
 df["historical"] = hist_anom
 
-# put weight vectors from individual perfromance weighting, from a single chain 
-# (from ensemble performance weighting) and the  multi-model mean in one Array
-chain = 1; idx_ipw = 11
-ws = deepcopy(all_weights[weight=[idx_ipw, chain, 2]])
-names = Array(ws.weight)
-names[2] = "Ensemble performance weighting"
-names[3] = "Multi-Model-Mean"
-ws = mwd.setDim(ws, :weight, nothing, names)
-ws[weight = At("Multi-Model-Mean")] = fill(1/n_models, n_models)
-
 years_hist = Array(Dates.year.(df["historical"].time))
 years_proj = Array(Dates.year.(df["ssp585"].time))
 years_all = vcat(years_hist, years_proj)
@@ -147,11 +136,18 @@ years_all = vcat(years_hist, years_proj)
 chain = 1;
 alpha = 0.5
 idx = 1 # Prior Dirichlet(1) (for appendix)
-idx = 2 # Prior Dirichlet(1/N)
+idx = 2 # Prior Dirichlet(1/N) (main text)
 ws_posterior_dirichlet = weights_posteriors[idx] 
 ws_prior_dirichlet = weights_priors[idx]
 
-add_prior = true;
+# choose which weightings to show
+begin
+    add_prior = true;
+    add_unweighted = true;
+    add_ipw = false;
+    add_epw = true;
+    add_mean_posterior = false;
+end
 begin
     plots_legend = []
     labels_legend = []
@@ -169,8 +165,9 @@ begin
     for (i, experiment) in enumerate(collect(keys(df)))
         data = df[experiment]
         n_timesteps = size(data, :time)
+        
         # Multi Model Mean with quantiles
-        begin
+        if add_unweighted
             quantiles_data = zeros(5, n_timesteps)
             for t in 1:n_timesteps
                 quantiles = map(p -> mwd.quantile(vec(data[time=t]), p), [0.05, 0.25, 0.5, 0.75, 0.95])
@@ -183,8 +180,43 @@ begin
                 push!(labels_legend, "Unweighted (multi-model mean)")
             end
         end
-        # Ensemble weighting posterior
-        begin
+
+        # - Add individual performance weighting and mean posterior weight vector (not in paper)-- #
+        # weighted averages for each timestep with mean posterior weight vector 
+        if add_mean_posterior
+            w_mean = mean(ws_posterior_dirichlet[:,:,chain]; dims=1)
+            wavg = mww.weightedAvg(data, vec(w_mean))
+            quantiles_data = zeros(5, n_timesteps)
+            for t in 1:n_timesteps
+                quantiles = map(p -> mwd.quantile(vec(data[time=t]), p; w=w_mean), [0.05, 0.25, 0.5, 0.75, 0.95])
+                quantiles_data[:, t] .= quantiles
+            end
+            mmm_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS[5], alpha=alpha)
+            mmm = Makie.lines!(ax, years[experiment], vec(wavg), color=COLORS[5], label = "Weighted (mean posterior)", linewidth=3)            
+            if i==1
+                push!(plots_legend, [mmm_band, mmm])
+                push!(labels_legend, "Weighted (mean posterior)")
+            end
+        end
+        # weighted averages for each timestep with individual performance weight vector 
+        if add_ipw
+            w = all_weights[weight=At("individual performance weighting")]
+            wavg = mww.weightedAvg(data, vec(w))
+            quantiles_data = zeros(5, n_timesteps)
+            for t in 1:n_timesteps
+                quantiles = map(p -> mwd.quantile(vec(data[time=t]), p; w=w), [0.05, 0.25, 0.5, 0.75, 0.95])
+                quantiles_data[:, t] .= quantiles
+            end
+            mmm_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS[4], alpha=alpha)
+            mmm = Makie.lines!(ax, years[experiment], vec(wavg), color=COLORS[4], label = "Weighted (individual)", linewidth=3)            
+            if i==1
+                push!(plots_legend, [mmm_band, mmm])
+                push!(labels_legend, "Weighted (individual)")
+            end
+        end
+        # -------------------------------------------------------------------------------- #
+        # #Ensemble performance weighting posterior
+        if add_epw
             weighted_data = zeros(n_iter, n_timesteps)
             for i in 1:n_iter
                 wavg = mww.weightedAvg(data, ws_posterior_dirichlet[i,:,chain])
