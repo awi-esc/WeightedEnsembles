@@ -77,7 +77,7 @@ begin
         framevisible = false, 
         patchsize = (10, 10)
     )
-    Label(f[1, 1, TopLeft()], "a"; fontsize = 12, font = :bold, padding = (10,0,10,0))
+    Label(f[1, 1, TopLeft()], "a"; fontsize = 12, font = :bold, padding = (0,20,0,0))
     f
 end
 mwp.savePlot(f, joinpath(plot_dir, "fig1a.pdf"))
@@ -116,7 +116,7 @@ begin
     Makie.scatter!(ax, generated_data, fill(0, n_models), color = :darkgrey, marker = '*', markersize = 30, label = "Individual models")
     Makie.scatter!(ax, mean(generated_data), 0, color=:red, marker = '*', markersize = 30, label = "MMM")
     axislegend(merge = true, framevisible = false, position = :lt, patchsize = (10,10))
-    Label(f[1, 1, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (10,0,10,0))
+    Label(f[1, 1, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (0,20,0,0))
     f
 end
 mwp.savePlot(f, joinpath(plot_dir, "fig1b.pdf"))

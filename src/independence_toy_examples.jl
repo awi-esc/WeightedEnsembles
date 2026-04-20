@@ -201,9 +201,9 @@ samples, posterior_mat, posterior_list = mww.drawFromModel(
 f = mwp.boxplotMCMCWeights(
     posterior_list, data_rep_models, chain=1; xticks=0:0.2:1, xlims=(0,1), fig_size = (300, 225)
 );
-Label(f[1, 1, TopLeft()], "a"; fontsize = 12, font = :bold, padding = (0,80,0,0))
+Label(f[1, 1, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (0,80,0,0))
 f
-mwp.savePlot(f, joinpath(plot_dir, "fig7a.pdf"))
+mwp.savePlot(f, joinpath(plot_dir, "fig7b-boxplot.pdf"))
 
 # plot correlation between weights
 f = mwp.plotCorrWeights(
@@ -213,6 +213,6 @@ f = mwp.plotCorrWeights(
     ylims = (0, 0.6),
     xticks = 0:0.2:1
 );
-Label(f[1, 1, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (0,10,10,0))
+Label(f[1, 1, TopLeft()], "a"; fontsize = 12, font = :bold, padding = (0,30,0,0))
 f
-mwp.savePlot(f, joinpath(plot_dir, "fig7b.pdf"))
+mwp.savePlot(f, joinpath(plot_dir, "fig7a-scatterplot.pdf"))

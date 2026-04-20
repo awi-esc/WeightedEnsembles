@@ -20,11 +20,14 @@ paths_data = joinpath.(
      "historical/recipe_cmip6_historical_psl_timeseries_20250313_130922/preproc/historical/psl_CLIM-ann"
     ]
 )
+
 data_hist_proj_members = mwd.defineDataMap(
     paths_data, 
     ["tas_annual_historical", "tas_annual_ssp585", "psl_annual_historical"]; 
+    level = :model,
     filename_format = :esmvaltool_cmip6,
-    constraint = Dict("level_shared" => "model")
+    constraint = Dict("models" => ["AWI-CM-1-1-MR"]),
+    preview = false
 )
 model_data = mwd.summarizeMembers(data_hist_proj_members)
 

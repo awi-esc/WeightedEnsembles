@@ -20,7 +20,7 @@ function makeToyData(data, obs; fixed_sigma::Bool=false, sigma::T=2) where T<:Nu
     end
     epsilon = rand(Normal(0, sigma), (Int(s1/2), s2))
     # 1. Error pattern: one half perfect, other same error added
-    data_pattern = mwd.setDim(data_pattern, :model, nothing, ["m1", "m2"])
+    data_pattern = mwd.setDim(data_pattern, :model, ["m1", "m2"])
     data_pattern[lon=1:s2, lat=:, model=1] .= obs[lon=1:s2, lat=:];
     data_pattern[lon=s2+1:end, lat=:, model=1] .= (obs[lon=s2+1:end, lat=:] .+ epsilon);
 
@@ -28,7 +28,7 @@ function makeToyData(data, obs; fixed_sigma::Bool=false, sigma::T=2) where T<:Nu
     data_pattern[lon=s2+1:end, lat=:, model=2] .= obs[lon=s2+1:end, lat=:];
 
     # 2. Random errors: each model everywhere obs + random noise (different, but same distr.)
-    data_rnd = mwd.setDim(data_rnd, :model, nothing, ["m1", "m2"])
+    data_rnd = mwd.setDim(data_rnd, :model, ["m1", "m2"])
     data_rnd[model=1] .= obs .+ rand(Normal(0, sigma), (s1, s2))
     data_rnd[model=2] .= obs .+ rand(Normal(0, sigma), (s1, s2))
 
