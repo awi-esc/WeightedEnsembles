@@ -134,7 +134,8 @@ years_proj = Array(Dates.year.(df["ssp585"].time))
 years_all = vcat(years_hist, years_proj)
 
 chain = 1;
-alpha = 0.5
+alpha = 0.25;
+linewidth = 3;
 
 # choose weights
 idx = 1 # Prior Dirichlet(1) (for appendix)
@@ -178,14 +179,89 @@ begin
                 quantiles_data[:, t] .= quantiles
             end
             mmm_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[2], alpha=alpha)
-            mmm = Makie.lines!(ax, years[experiment], vec(mean(data; dims=:model)), color=COLORS_PROJ[2], label = "Unweighted (multi-model mean)", linewidth=3)            
             if i==1
-                push!(plots_legend, [mmm_band, mmm])
+                push!(plots_legend, [mmm_band])#, mmm])
                 push!(labels_legend, "Unweighted (multi-model mean)")
             end
         end
+        # Prior
+        weighted_data_prior = zeros(n_iter, n_timesteps)
+        if add_prior
+            for i in 1:n_iter
+                wavg = mww.weightedAvg(data, ws_prior_dirichlet[i,:,chain])
+                weighted_data_prior[i, :] .= wavg
+            end
+            quantiles_data = zeros(5,n_timesteps)
+            for t in 1:n_timesteps
+                quantiles = map(p -> mwd.quantile(weighted_data_prior[:,t], p), [0.05, 0.25, 0.5, 0.75, 0.95])
+                quantiles_data[:, t] .= quantiles
+            end
+            prior_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[3], alpha=alpha)
+            # Makie.lines!(
+            #     ax, years[experiment],  quantiles_data[1,:],  
+            #     color=COLORS_PROJ[3], 
+            #     linestyle = :dash
+            # )
+            # Makie.lines!(ax, years[experiment], quantiles_data[end,:], 
+            #     color = COLORS_PROJ[3],
+            #     linestyle = :dash
+            # )
+            if i==1
+                push!(plots_legend, [prior_band])
+                push!(labels_legend, "Ensemble performance weighting (prior)")
+            end
+        end
+        # Ensemble performance weighting posterior
+        weighted_data_posterior = zeros(n_iter, n_timesteps)
+        if add_epw
+            for i in 1:n_iter
+                wavg = mww.weightedAvg(data, ws_posterior_dirichlet[i,:,chain])
+                weighted_data_posterior[i, :] .= wavg
+            end
 
-        # - Add individual performance weighting and mean posterior weight vector (not in paper)-- #
+            quantiles_data = zeros(5,n_timesteps)
+            for t in 1:n_timesteps
+                quantiles = map(p -> mwd.quantile(weighted_data_posterior[:,t], p), [0.05, 0.25, 0.5, 0.75, 0.95])
+                quantiles_data[:, t] .= quantiles
+            end
+
+            ew_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[1], alpha=alpha)            
+            if i==1
+                push!(plots_legend, [ew_band])
+                push!(labels_legend, "Ensemble performance weighting (posterior)")
+            end
+        end
+
+        mmm = Makie.lines!(
+            ax, 
+            years[experiment], 
+            vec(mean(data; dims=:model)), 
+            color=COLORS_PROJ[2], 
+            label = "Unweighted (multi-model mean)", 
+            linewidth=linewidth
+        )            
+        if add_prior
+            prior_mean = Makie.lines!(
+                ax, years[experiment], vec(mean(weighted_data_prior; dims=1)), 
+                color = COLORS_PROJ[3], 
+                label = "Ensemble performance weighting (prior)", 
+                linewidth = 2,
+                linestyle = :dash
+            )
+        end
+        if add_epw
+            ew_mean = Makie.lines!(
+                ax, 
+                years[experiment], 
+                vec(mean(weighted_data_posterior; dims=1)), 
+                color=COLORS_PROJ[1], 
+                label = "Ensemble performance weighting (posterior)", 
+                linewidth = linewidth
+            )
+        end
+
+        # -------------------------------------------------------------------------------- #
+        # Add individual performance weighting and mean posterior weight vector (not in paper)#
         # weighted averages for each timestep with mean posterior weight vector 
         if add_mean_posterior
             w_mean = mean(ws_posterior_dirichlet[:,:,chain]; dims=1)
@@ -219,61 +295,6 @@ begin
             end
         end
         # -------------------------------------------------------------------------------- #
-        # #Ensemble performance weighting posterior
-        if add_epw
-            weighted_data = zeros(n_iter, n_timesteps)
-            for i in 1:n_iter
-                wavg = mww.weightedAvg(data, ws_posterior_dirichlet[i,:,chain])
-                weighted_data[i, :] .= wavg
-            end
-
-            quantiles_data = zeros(5,n_timesteps)
-            for t in 1:n_timesteps
-                quantiles = map(p -> mwd.quantile(weighted_data[:,t], p), [0.05, 0.25, 0.5, 0.75, 0.95])
-                quantiles_data[:, t] .= quantiles
-            end
-
-            ew_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[1], alpha=alpha)
-            ew_mean = Makie.lines!(ax, years[experiment], vec(mean(weighted_data; dims=1)), color=COLORS_PROJ[1], label = "Ensemble performance weighting (posterior)", linewidth=3)
-            
-            if i==1
-                push!(plots_legend, [ew_band, ew_mean])
-                push!(labels_legend, "Ensemble performance weighting (posterior)")
-            end
-        end
-        # Prior
-        if add_prior
-            weighted_data = zeros(n_iter, n_timesteps)
-            for i in 1:n_iter
-                wavg = mww.weightedAvg(data, ws_prior_dirichlet[i,:,chain])
-                weighted_data[i, :] .= wavg
-            end
-            quantiles_data = zeros(5,n_timesteps)
-            for t in 1:n_timesteps
-                quantiles = map(p -> mwd.quantile(weighted_data[:,t], p), [0.05, 0.25, 0.5, 0.75, 0.95])
-                quantiles_data[:, t] .= quantiles
-            end
-            prior_mean = Makie.lines!(
-                ax, years[experiment], vec(mean(weighted_data; dims=1)), 
-                color = COLORS_PROJ[3], 
-                label = "Ensemble performance weighting (prior)", 
-                linewidth = 3,
-                linestyle = :dash
-            )
-            Makie.lines!(
-                ax, years[experiment],  quantiles_data[1,:],  
-                color=COLORS_PROJ[3], 
-                linestyle = :dash
-            )
-            Makie.lines!(ax, years[experiment], quantiles_data[end,:], 
-                color = COLORS_PROJ[3],
-                linestyle = :dash
-            )
-            if i==1
-                push!(plots_legend, prior_mean)
-                push!(labels_legend, "Ensemble performance weighting (prior)")
-            end
-        end
     end
     # add observational data
     Makie.lines!(ax, years_hist, obs_anom.data, color=:black, label = "Observational data")
