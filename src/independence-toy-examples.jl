@@ -6,7 +6,7 @@ using DimensionalData
 using Random
 
 include("config.jl")
-include("fns_independence.jl")
+include("functions-independence.jl")
 
 # ---------------------------- Load data ------------------------------------------------- #
 diagnostics = ["tas_ANOM", "psl_ANOM"]

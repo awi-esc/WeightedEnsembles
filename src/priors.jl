@@ -1,4 +1,5 @@
 import ModelWeights.Plots as mwp
+import ModelWeights.Weights as mww
 
 using CairoMakie
 using Distributions
