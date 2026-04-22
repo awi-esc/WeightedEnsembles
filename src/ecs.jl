@@ -77,11 +77,11 @@ function saveWeights(data, dimensions, target_path)
 end
 
 dimensions = (Dim{:iteration}(1:n_iter), Dim{:model}(models), Dim{:chain}(1:n_chains))
-saveWeights(weights_posteriors[1], dimensions, joinpath(target_data_dir, "posterior-weights-dirichlet-1.nc"))
-saveWeights(weights_posteriors[2], dimensions, joinpath(target_data_dir, "posterior-weights-dirichlet-1-over-N.nc"))
+saveWeights(weights_posteriors[1], dimensions, joinpath(target_data_dir, "weights-ecs", "posterior-weights-dirichlet-1.nc"))
+saveWeights(weights_posteriors[2], dimensions, joinpath(target_data_dir, "weights-ecs", "posterior-weights-dirichlet-1-over-N.nc"))
 
-saveWeights(weights_priors[1], dimensions, joinpath(target_data_dir, "prior-weights-dirichlet-1.nc"))
-saveWeights(weights_priors[2], dimensions, joinpath(target_data_dir, "prior-weights-dirichlet-1-over-N.nc"))
+saveWeights(weights_priors[1], dimensions, joinpath(target_data_dir, "weights-ecs", "prior-weights-dirichlet-1.nc"))
+saveWeights(weights_priors[2], dimensions, joinpath(target_data_dir, "weights-ecs", "prior-weights-dirichlet-1-over-N.nc"))
 # ---------------------------------------------------------------------------------------- #
 
 # Make plot

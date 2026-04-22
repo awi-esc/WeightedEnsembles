@@ -115,10 +115,18 @@ begin
     weights_ipw = [w_pattern, w_rnd, w_real]
 end
 
-mwd.writeDataToDisk(weights_ipw, joinpath(target_data_dir, "independence-weights-individual.jld2"))
-mwd.writeDataToDisk(weights_epw, joinpath(target_data_dir, "independence-weights-ensemble.jld2"))
+# ----------------------------- Save data to publish ------------------------------------- #
+savecube(weights_epw[1], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-error-pattern.nc"); driver=:netcdf, layername="weight")
+savecube(weights_epw[2], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-error-random.nc"); driver=:netcdf, layername="weight")
+savecube(weights_epw[3], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-real-data.nc"); driver=:netcdf, layername="weight")
 
-# ------------------------------ Figure 6 ------------------------------------------- #
+
+savecube(weights_ipw[1], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-error-pattern.nc"); driver=:netcdf, layername="weight")
+savecube(weights_ipw[2], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-error-random.nc"); driver=:netcdf, layername="weight")
+savecube(weights_ipw[3], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-real-data.nc"); driver=:netcdf, layername="weight")
+
+
+# ----------------------------------- Figure 6 ------------------------------------------- #
 n_reps = length(n_reps_model2);
 y_label = "Model weights"
 begin
@@ -203,7 +211,7 @@ f = mwp.boxplotMCMCWeights(
 );
 Label(f[1, 1, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (0,80,0,0))
 f
-mwp.savePlot(f, joinpath(plot_dir, "fig7b-boxplot.pdf"))
+mwp.savePlot(f, joinpath(plot_dir, "fig7b.pdf"))
 
 # plot correlation between weights
 f = mwp.plotCorrWeights(
@@ -215,4 +223,4 @@ f = mwp.plotCorrWeights(
 );
 Label(f[1, 1, TopLeft()], "a"; fontsize = 12, font = :bold, padding = (0,30,0,0))
 f
-mwp.savePlot(f, joinpath(plot_dir, "fig7a-scatterplot.pdf"))
+mwp.savePlot(f, joinpath(plot_dir, "fig7a.pdf"))
