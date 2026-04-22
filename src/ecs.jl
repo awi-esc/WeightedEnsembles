@@ -70,6 +70,21 @@ for (i, alphas) in enumerate(params)
     end
 end
 
+# ---------------------------- save weights to publish ----------------------------------- #
+function saveWeights(data, dimensions, target_path)
+    yax = YAXArray(dimensions, data)
+    savecube(yax, target_path; driver=:netcdf, layername="weight")
+end
+
+dimensions = (Dim{:iteration}(1:n_iter), Dim{:model}(models), Dim{:chain}(1:n_chains))
+saveWeights(weights_posteriors[1], dimensions, joinpath(target_data_dir, "posterior-weights-dirichlet-1.nc"))
+saveWeights(weights_posteriors[2], dimensions, joinpath(target_data_dir, "posterior-weights-dirichlet-1-over-N.nc"))
+
+saveWeights(weights_priors[1], dimensions, joinpath(target_data_dir, "prior-weights-dirichlet-1.nc"))
+saveWeights(weights_priors[2], dimensions, joinpath(target_data_dir, "prior-weights-dirichlet-1-over-N.nc"))
+# ---------------------------------------------------------------------------------------- #
+
+# Make plot
 chain = 1;
 titles = ["Prior: Dirichlet([1,..., 1])", "Prior: Dirichlet([1/N, ..., 1/N])"]
 f_expected_ecs = mwp.plotExpectedECS(
@@ -94,35 +109,10 @@ f_expected_ecs = mwp.plotExpectedECS(
 )
 mwp.savePlot(f_expected_ecs, joinpath(plot_dir, "fig8.pdf"))
 
-
-# Bring mean weights together
-ws_posterior_dirichlet = weights_posteriors[2] # using Dirichlet(1/N) prior
-begin
-    mean_weights_dirichlet = mean(ws_posterior_dirichlet; dims=1)
-    mw_dirichlet_yax = YAXArray(
-        (DimensionalData.dims(ecs_data, :model), Dim{:chain}(map(x->"chain$x", 1:n_chains))), 
-        mean_weights_dirichlet[1, :, :]
-    )
-    mw_dirichlet_yax = mwd.setDim(mw_dirichlet_yax, :chain, :weight, nothing)
-    f_weights = mwp.plotWeights(mw_dirichlet_yax; one_plot=true, nbanks=2, fig_size = (650,400), ls = 10, fs=10)
-
-    # Add individual performance weighting: compute weights based on each model's ECS value
-    iw_weights = mww.likelihoodWeights(
-        Array(ecs_data.data), Array(ecs_data.model), lh_fn_ecs, "individual performance weighting"
-    )
-    # Add equal weights 
-    eq_weights = YAXArray(
-        (dims(iw_weights, :model), Dim{:weight}(["equal"])),
-        reshape(fill(1/n_models, n_models), :, 1)
-    )
-    all_weights = mwd.mergeYAX(
-        [mw_dirichlet_yax, iw_weights, eq_weights], 
-        :weight,
-        [Array(mw_dirichlet_yax.weight)..., Array(iw_weights.weight)..., Array(eq_weights.weight)...]
-    )
-end
-mwd.writeDataToDisk(all_weights, joinpath(target_data_dir, "all-weights-ecs.jld2"); add_hour = false)
-# mwp.plotWeights(all_weights; one_plot=true, nbanks=3)
+# Individual performance weighting: compute weights based on each model's ECS value (not in paper)
+iw_weights = mww.likelihoodWeights(
+    Array(ecs_data.data), Array(ecs_data.model), lh_fn_ecs, "individual performance weighting"
+)[weight = 1]
 
 #----------------------------- Make projection plots -----------------------------# 
 df = mwd.DataMap();
@@ -197,15 +187,6 @@ begin
                 quantiles_data[:, t] .= quantiles
             end
             prior_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[3], alpha=alpha)
-            # Makie.lines!(
-            #     ax, years[experiment],  quantiles_data[1,:],  
-            #     color=COLORS_PROJ[3], 
-            #     linestyle = :dash
-            # )
-            # Makie.lines!(ax, years[experiment], quantiles_data[end,:], 
-            #     color = COLORS_PROJ[3],
-            #     linestyle = :dash
-            # )
             if i==1
                 push!(plots_legend, [prior_band])
                 push!(labels_legend, "Ensemble performance weighting (prior)")
@@ -280,11 +261,10 @@ begin
         end
         # weighted averages for each timestep with individual performance weight vector 
         if add_ipw
-            w = all_weights[weight=At("individual performance weighting")]
-            wavg = mww.weightedAvg(data, vec(w))
+            wavg = mww.weightedAvg(data, vec(iw_weights))
             quantiles_data = zeros(5, n_timesteps)
             for t in 1:n_timesteps
-                quantiles = map(p -> mwd.quantile(vec(data[time=t]), p; w=w), [0.05, 0.25, 0.5, 0.75, 0.95])
+                quantiles = map(p -> mwd.quantile(vec(data[time=t]), p; w=iw_weights), [0.05, 0.25, 0.5, 0.75, 0.95])
                 quantiles_data[:, t] .= quantiles
             end
             mmm_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS[4], alpha=alpha)
@@ -301,6 +281,6 @@ begin
     axislegend(ax, position = :lt, merge=true)
     f
 end
-mwp.savePlot(f, joinpath(plot_dir, "fig9.pdf"); overwrite=true)
+mwp.savePlot(f, joinpath(plot_dir, "fig9.pdf")) # for idx=2 (Prior: Dir(1/N))
 mwp.savePlot(f, joinpath(plot_dir, "figA1.pdf"); overwrite=true) # for idx=1 (Prior: Dir(1))
 
