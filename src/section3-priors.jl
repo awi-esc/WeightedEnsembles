@@ -10,7 +10,7 @@ using Turing
 
 include("config.jl")
 
-# -------------------------- Dirichlet Prior -------------------------- #
+# ------------------------------------ Dirichlet Prior ----------------------------------- #
 function meanDirichlet(alphas)
     alpha0 = sum(alphas)
     return alphas ./ alpha0
@@ -83,7 +83,7 @@ begin
 end
 mwp.savePlot(f, joinpath(plot_dir, "fig1a.pdf"))
 
-# ----------------- show influence of prior on weighted averages ----------------- #
+# -------------------- show influence of prior on weighted averages ---------------------- #
 begin
     n_models = 38;
     distr = Distributions.Normal(3, 1)
@@ -124,40 +124,42 @@ mwp.savePlot(f, joinpath(plot_dir, "fig1b.pdf"))
 
 
 
+# -------------------- Some more plots (not in paper) -------------------------------------#
+# do not run when script is run from terminal
+if abspath(PROGRAM_FILE) != @__FILE__
+    @info "Make plots not in paper..."
+    # Distribution of maximum weight values for different Dirichlet distributions
+    dirAlpha(N, x) = fill(1/(x*N), N)
 
+    f1 = Figure(size=(800,300))
+    N = 38
+    titles = [
+        latexstring("\\alpha = 1/(N); \\quad N=$N"), 
+        latexstring("\\alpha = \\frac{1}{10N}; \\quad N=$N")
+    ]
+    for (i,x) in enumerate([1, 10])
+        alphas = dirAlpha(N, x)
+        prior = Distributions.Dirichlet(alphas)
+        prior_samples = rand(prior, 1000)
+        max_weights = vec(maximum(prior_samples; dims=1))
 
-# -------------------- Some more plots (not in paper) ----------------------#
-# Distribution of maximum weight values for different Dirichlet distributions
-dirAlpha(N, x) = fill(1/(x*N), N)
+        alpha_round = round(alphas[1], digits=3)
+        Makie.hist!(
+            Axis(f1[1,i], xlabel="Maximum weight", title = titles[i]),
+            max_weights
+        )
+    end
+    f1
 
-f1 = Figure(size=(800,300))
-N = 38
-titles = [
-    latexstring("\\alpha = 1/(N); \\quad N=$N"), 
-    latexstring("\\alpha = \\frac{1}{10N}; \\quad N=$N")
-]
-for (i,x) in enumerate([1, 10])
-    alphas = dirAlpha(N, x)
-    prior = Distributions.Dirichlet(alphas)
-    prior_samples = rand(prior, 1000)
-    max_weights = vec(maximum(prior_samples; dims=1))
-
-    alpha_round = round(alphas[1], digits=3)
-    Makie.hist!(
-        Axis(f1[1,i], xlabel="Maximum weight", title = titles[i]),
-        max_weights
-    )
+    # Inverse Gamma distriubtions
+    f2 = Figure()
+    ax2 = Axis(f2[1,1], title = "InverseGamma distributions")
+    xs = 0:0.01:5
+    for (a,b) in [(1,1), (2,1), (3,3), (2,3)]
+        d = InverseGamma(a,b)
+        ys = Distributions.pdf.(d, xs)
+        Makie.lines!(ax2, xs, ys, label = "($a,$b)")
+    end
+    axislegend(ax2)
+    f2
 end
-f1
-
-# Inverse Gamma distriubtions
-f2 = Figure()
-ax2 = Axis(f2[1,1], title = "InverseGamma distributions")
-xs = 0:0.01:5
-for (a,b) in [(1,1), (2,1), (3,3), (2,3)]
-    d = InverseGamma(a,b)
-    ys = Distributions.pdf.(d, xs)
-    Makie.lines!(ax2, xs, ys, label = "($a,$b)")
-end
-axislegend(ax2)
-f2
