@@ -39,10 +39,10 @@ begin
         ecs_data_csv[!, :ECS]
     )
     # Target ECS-distribution (based on Sherwood et al):
-    data_pdf_ecs_wd = mwd.readDataFromDisk(joinpath(data_dir, "ecs", "ecs_data-lh-fn-wd.jld2"))
-    xs = data_pdf_ecs_wd["xs"]
-    ys = data_pdf_ecs_wd["ys"]
-    pdf_ecs = Dierckx.Spline1D(xs, ys, k=data_pdf_ecs_wd["k"], s=data_pdf_ecs_wd["s"])
+    data_pdf_ecs = open_dataset(joinpath(data_dir, "ecs", "ecs-pdf.nc"))
+    ecs_density = data_pdf_ecs["density"]
+    xs = lookup(ecs_density, :x)
+    pdf_ecs = Dierckx.Spline1D(xs, ys, k=ecs_density.properties["k"], s=ecs_density.properties["s"])
     lh_fn_ecs(x) = pdf_ecs(x)
 end
 
