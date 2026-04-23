@@ -10,7 +10,8 @@ using DimensionalData
 using Statistics
 using YAXArrays
 
-# --------------------- Load model data --------------------- #
+# --------------------------------- Load original data ----------------------------------- #
+# Change your paths accordingly
 data_dir = "./data/"
 base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool"
 paths_data = joinpath.(
@@ -40,7 +41,7 @@ ecs_data = YAXArray(
 )
 ecs_models = ecs_data.model
 
-# --------------------- Process model data --------------------- #
+# ------------------------------- Process model data ------------------------------------- #
 mwd.apply!(
     model_data, mwt.filterTimeseries, 1950, 2014; 
     ids = ["tas_annual_historical", "psl_annual_historical"]
@@ -80,7 +81,8 @@ CSV.write(joinpath(data_dir, "members-psl-historical.csv"), df1)
 CSV.write(joinpath(data_dir, "members-tas-historical.csv"), df2)
 CSV.write(joinpath(data_dir, "members-tas-ssp585.csv"), df3)
 
-# --------------------- Load observational data (ERA5) --------------------- #
+# ------------------------------ Load observational data (ERA5) -------------------------- #
+# Change your paths accordingly
 base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool/obs/recipe_ERA5_20250718_180812/preproc/historical"
 data_dirs = ["psl_CLIM-ann", "tas_CLIM-ann"]
 obs_era5 = mw.defineDataMap(
@@ -102,7 +104,7 @@ df_obs = mwd.apply(obs_data, x -> coalesce.(x, NaN))
 savecube(df_obs["tas_annual"], joinpath(data_dir, "timeseries", "obs_tas_annual_historical.nc"); driver=:netcdf, layername="tas_annual")
 savecube(df_obs["psl_annual"], joinpath(data_dir, "timeseries", "obs_psl_annual_historical.nc"); driver=:netcdf, layername="psl_annual")
         
-# --------------------- Process observational data (ERA5) --------------------- #
+# --------------------- Process observational data (ERA5) -------------------------------- #
 mwd.apply!(obs_data, mwt.filterTimeseries, 1980, 2014; 
     ids = ["tas_annual", "psl_annual"], 
     ids_new = ["tas_annual_diagnostic", "psl_annual_diagnostic"]
@@ -111,7 +113,7 @@ mwd.apply!(obs_data, mwt.filterTimeseries, 1995, 2014;
     ids = ["tas_annual"], ids_new = ["tas_annual_reference"]
 )
 
-# --------------------- Compute diagnostics --------------------- #
+# --------------------------------- Compute diagnostics ---------------------------------- #
 for (_, dm) in enumerate([model_data, obs_data])
     mwd.apply!(
         dm, mwd.climatology;
@@ -135,7 +137,7 @@ savecube(obs_diagnostics["psl_ANOM-GM"], joinpath(data_dir, "diagnostics", "obs_
 savecube(model_diagnostics["tas_ANOM-GM"], joinpath(data_dir, "diagnostics", "models_tas_ANOM-GM_1980-2014.nc"); driver=:netcdf, layername="tas_ANOM-GM")
 savecube(model_diagnostics["psl_ANOM-GM"], joinpath(data_dir, "diagnostics", "models_psl_ANOM-GM_1980-2014.nc"); driver=:netcdf, layername="tas_ANOM-GM")
 
-# --------------------- Process projection data --------------------- #
+# ---------------------------- Process projection data ----------------------------------- #
 ids_ts = ["tas_annual_historical", "tas_annual_ssp585", "tas_annual_reference"]
 projections = mwd.subsetDataMap(model_data, ids_ts)
 
