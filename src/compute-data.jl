@@ -10,10 +10,13 @@ using DimensionalData
 using Statistics
 using YAXArrays
 
+include("config.jl")
+
 # --------------------------------- Load original data ----------------------------------- #
-# Change your paths accordingly
-data_dir = "./data/"
-base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool"
+# Change your path accordingly
+#base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool"
+base_dir = "/Users/brgrus001/cmip-data/"
+
 paths_data = joinpath.(
     base_dir,
     ["historical/recipe_cmip6_historical_tas_timeseries_20250228_081213/preproc/historical/tas_CLIM-ann",
@@ -25,14 +28,13 @@ paths_data = joinpath.(
 data_hist_proj_members = mwd.defineDataMap(
     paths_data, 
     ["tas_annual_historical", "tas_annual_ssp585", "psl_annual_historical"]; 
-    level = :model,
     filename_format = :esmvaltool_cmip6,
-    constraint = Dict("models" => ["AWI-CM-1-1-MR"]),
+    constraint = Dict("level_shared" => "model"),
     preview = false
 )
 model_data = mwd.summarizeMembers(data_hist_proj_members)
 
-ecs_data_csv = DataFrame(CSV.File(joinpath(data_dir, "ecs", "ecs-unique.csv")))
+ecs_data_csv = DataFrame(CSV.File(joinpath("data", "ecs", "ecs-unique.csv")))
 # Just cmip6 models
 ecs_data_csv = filter(row -> row.mip == "CMIP6", ecs_data_csv)
 ecs_data = YAXArray(
@@ -62,9 +64,9 @@ mwd.apply!(model_data, yax ->  yax[model = Where(x -> x in ecs_models)])
 
 # save timeseries data, missing values need to be replaced by NaNs to save data
 df = mwd.apply(model_data, x -> coalesce.(x, NaN))
-savecube(df["tas_annual_historical"], joinpath(data_dir, "timeseries", "models_tas_annual_historical.nc"); driver=:netcdf, layername="tas_annual_historical")
-savecube(df["psl_annual_historical"], joinpath(data_dir, "timeseries", "models_psl_annual_historical.nc"); driver=:netcdf, layername="psl_annual_historical")
-savecube(df["tas_annual_ssp585"], joinpath(data_dir, "timeseries", "models_tas_annual_ssp585.nc"); driver=:netcdf, layername="tas_annual_ssp585")
+savecube_safe(df["tas_annual_historical"], joinpath(data_dir, "timeseries", "models_tas_annual_historical.nc"); driver=:netcdf, layername="tas_annual_historical")
+savecube_safe(df["psl_annual_historical"], joinpath(data_dir, "timeseries", "models_psl_annual_historical.nc"); driver=:netcdf, layername="psl_annual_historical")
+savecube_safe(df["tas_annual_ssp585"], joinpath(data_dir, "timeseries", "models_tas_annual_ssp585.nc"); driver=:netcdf, layername="tas_annual_ssp585")
 
 # Write used models to CSV files
 # also add used model runs per model
@@ -82,8 +84,10 @@ CSV.write(joinpath(data_dir, "members-tas-historical.csv"), df2)
 CSV.write(joinpath(data_dir, "members-tas-ssp585.csv"), df3)
 
 # ------------------------------ Load observational data (ERA5) -------------------------- #
-# Change your paths accordingly
-base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool/obs/recipe_ERA5_20250718_180812/preproc/historical"
+# Change your path accordingly
+#base_dir = "/albedo/work/projects/p_forclima/preproc_data_esmvaltool/obs/recipe_ERA5_20250718_180812/preproc/historical"
+base_dir = "/Users/brgrus001/obs_data/recipe_ERA5_20250718_180812/preproc/historical"
+
 data_dirs = ["psl_CLIM-ann", "tas_CLIM-ann"]
 obs_era5 = mw.defineDataMap(
     joinpath.(base_dir, data_dirs),
@@ -101,8 +105,8 @@ mwd.apply!(obs_data, mwt.filterTimeseries, 1950, 2014; ids = ["tas_annual", "psl
 
 # save timeseries data:
 df_obs = mwd.apply(obs_data, x -> coalesce.(x, NaN))
-savecube(df_obs["tas_annual"], joinpath(data_dir, "timeseries", "obs_tas_annual_historical.nc"); driver=:netcdf, layername="tas_annual")
-savecube(df_obs["psl_annual"], joinpath(data_dir, "timeseries", "obs_psl_annual_historical.nc"); driver=:netcdf, layername="psl_annual")
+savecube_safe(df_obs["tas_annual"], joinpath(data_dir, "timeseries", "obs_tas_annual_historical.nc"); driver=:netcdf, layername="tas_annual")
+savecube_safe(df_obs["psl_annual"], joinpath(data_dir, "timeseries", "obs_psl_annual_historical.nc"); driver=:netcdf, layername="psl_annual")
         
 # --------------------- Process observational data (ERA5) -------------------------------- #
 mwd.apply!(obs_data, mwt.filterTimeseries, 1980, 2014; 
@@ -130,12 +134,12 @@ diagnostic_ids = ["tas_ANOM-GM", "psl_ANOM-GM"];
 obs_diagnostics = mwd.apply(mwd.subsetDataMap(obs_data, diagnostic_ids), x -> coalesce.(x, NaN))
 model_diagnostics = mwd.apply(mwd.subsetDataMap(model_data, diagnostic_ids), x -> coalesce.(x, NaN))
 # save observational diagnostic data
-savecube(obs_diagnostics["tas_ANOM-GM"], joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.nc"); driver=:netcdf, layername="tas_ANOM-GM")
-savecube(obs_diagnostics["psl_ANOM-GM"], joinpath(data_dir, "diagnostics", "obs_psl_ANOM-GM_1980-2014.nc"); driver=:netcdf, layername="psl_ANOM-GM")
+savecube_safe(obs_diagnostics["tas_ANOM-GM"], joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.nc"); driver=:netcdf, layername="tas_ANOM-GM")
+savecube_safe(obs_diagnostics["psl_ANOM-GM"], joinpath(data_dir, "diagnostics", "obs_psl_ANOM-GM_1980-2014.nc"); driver=:netcdf, layername="psl_ANOM-GM")
 
 # save model diagnostic data
-savecube(model_diagnostics["tas_ANOM-GM"], joinpath(data_dir, "diagnostics", "models_tas_ANOM-GM_1980-2014.nc"); driver=:netcdf, layername="tas_ANOM-GM")
-savecube(model_diagnostics["psl_ANOM-GM"], joinpath(data_dir, "diagnostics", "models_psl_ANOM-GM_1980-2014.nc"); driver=:netcdf, layername="tas_ANOM-GM")
+savecube_safe(model_diagnostics["tas_ANOM-GM"], joinpath(data_dir, "diagnostics", "models_tas_ANOM-GM_1980-2014.nc"); driver=:netcdf, layername="tas_ANOM-GM")
+savecube_safe(model_diagnostics["psl_ANOM-GM"], joinpath(data_dir, "diagnostics", "models_psl_ANOM-GM_1980-2014.nc"); driver=:netcdf, layername="tas_ANOM-GM")
 
 # ---------------------------- Process projection data ----------------------------------- #
 ids_ts = ["tas_annual_historical", "tas_annual_ssp585", "tas_annual_reference"]
@@ -156,8 +160,8 @@ for id_gm in ids_annual_gms
     )
 end
 
-savecube(projections["tas_annual-GM-ANOM_historical"], joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_historical.nc"); driver=:netcdf, layername="tas_annual-GM-ANOM_historical")
-savecube(projections["tas_annual-GM-ANOM_ssp585"], joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_ssp585.nc"); driver=:netcdf, layername="tas_annual-GM-ANOM_ssp585")
+savecube_safe(projections["tas_annual-GM-ANOM_historical"], joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_historical.nc"); driver=:netcdf, layername="tas_annual-GM-ANOM_historical")
+savecube_safe(projections["tas_annual-GM-ANOM_ssp585"], joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_ssp585.nc"); driver=:netcdf, layername="tas_annual-GM-ANOM_ssp585")
 
 # for observational data also save the anomalies of the annual climatologies wrt the 
 # reference time period from 1995-2014:
@@ -165,6 +169,6 @@ mean_ref = dropdims(mean(obs_data["tas_annual_reference"], dims=:time); dims=:ti
 obs_data["tas_ANOM-ann"] = mwd.anomalies(obs_data["tas_annual"], mean_ref)
 obs_data["tas_ANOM-ann-GM"] = mwd.globalMeans(obs_data["tas_ANOM-ann"])
 
-savecube(obs_data["tas_ANOM-ann-GM"], joinpath(data_dir, "timeseries-projection-plot", "obs_tas_gms-anomalies-ref.nc"); driver=:netcdf, layername="tas_ANOM-ann-GM")
+savecube_safe(obs_data["tas_ANOM-ann-GM"], joinpath(data_dir, "timeseries-projection-plot", "obs_tas_gms-anomalies-ref.nc"); driver=:netcdf, layername="tas_ANOM-ann-GM")
 
 
