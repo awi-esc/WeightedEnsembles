@@ -1,4 +1,3 @@
-include("./config.jl")
 import ModelWeights.Data as mwd
 import ModelWeights.Weights as mww
 import ModelWeights.Plots as mwp
@@ -9,6 +8,9 @@ using MCMCChains
 using Random
 using Statistics
 using YAXArrays
+
+include("./config.jl")
+
 # --------------------------  Generate toy data -------------------------- #
 diagnostics = ["tas_ANOM", "psl_ANOM"];
 obs_tas = readcubedata(open_dataset(joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.nc"))["tas_ANOM-GM"])[model=1]

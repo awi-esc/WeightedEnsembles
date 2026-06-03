@@ -116,14 +116,14 @@ begin
 end
 
 # ----------------------------- Save data to publish ------------------------------------- #
-savecube(weights_epw[1], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-error-pattern.nc"); driver=:netcdf, layername="weight")
-savecube(weights_epw[2], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-error-random.nc"); driver=:netcdf, layername="weight")
-savecube(weights_epw[3], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-real-data.nc"); driver=:netcdf, layername="weight")
+savecube_safe(weights_epw[1], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-error-pattern.nc"); driver=:netcdf, layername="weight")
+savecube_safe(weights_epw[2], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-error-random.nc"); driver=:netcdf, layername="weight")
+savecube_safe(weights_epw[3], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-real-data.nc"); driver=:netcdf, layername="weight")
 
 
-savecube(weights_ipw[1], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-error-pattern.nc"); driver=:netcdf, layername="weight")
-savecube(weights_ipw[2], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-error-random.nc"); driver=:netcdf, layername="weight")
-savecube(weights_ipw[3], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-real-data.nc"); driver=:netcdf, layername="weight")
+savecube_safe(weights_ipw[1], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-error-pattern.nc"); driver=:netcdf, layername="weight")
+savecube_safe(weights_ipw[2], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-error-random.nc"); driver=:netcdf, layername="weight")
+savecube_safe(weights_ipw[3], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-real-data.nc"); driver=:netcdf, layername="weight")
 
 
 # ----------------------------------- Figure 6 ------------------------------------------- #

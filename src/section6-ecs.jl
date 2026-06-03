@@ -29,7 +29,7 @@ obs_anom = readcubedata(open_dataset(joinpath(data_dir, "timeseries-projection-p
 
 # Get ECS values
 begin
-    ecs_data_csv = DataFrame(CSV.File(joinpath(data_dir, "ecs", "ecs-unique.csv")))
+    ecs_data_csv = DataFrame(CSV.File(joinpath("data", "ecs", "ecs-unique.csv")))
     # Just cmip6 models
     ecs_data_csv = filter(row -> row.mip == "CMIP6", ecs_data_csv)
     ecs_data_csv = filter(row -> row.model in models, ecs_data_csv)
@@ -39,9 +39,10 @@ begin
         ecs_data_csv[!, :ECS]
     )
     # Target ECS-distribution (based on Sherwood et al):
-    data_pdf_ecs = open_dataset(joinpath(data_dir, "ecs", "ecs-pdf.nc"))
+    data_pdf_ecs = open_dataset(joinpath("data", "ecs", "ecs-pdf.nc"))
     ecs_density = data_pdf_ecs["density"]
     xs = lookup(ecs_density, :x)
+    ys = Array(ecs_density)
     pdf_ecs = Dierckx.Spline1D(xs, ys, k=ecs_density.properties["k"], s=ecs_density.properties["s"])
     lh_fn_ecs(x) = pdf_ecs(x)
 end
@@ -73,7 +74,7 @@ end
 # ---------------------------- save weights to publish ----------------------------------- #
 function saveWeights(data, dimensions, target_path)
     yax = YAXArray(dimensions, data)
-    savecube(yax, target_path; driver=:netcdf, layername="weight")
+    savecube_safe(yax, target_path; driver=:netcdf, layername="weight")
 end
 
 dimensions = (Dim{:iteration}(1:n_iter), Dim{:model}(models), Dim{:chain}(1:n_chains))
