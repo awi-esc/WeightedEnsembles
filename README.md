@@ -23,9 +23,9 @@ Activate and instantiate the julia project (WeightedEnsembles.jl) by running the
 
 Then run the following commands to create the figures from the paper for the respective sections:
 
-- `julia --project=. sectoin3-priors.jl`
-- `julia --project=. sectoin4-combined-diagnostics.jl`
-- `julia --project=. sectoin6-ecs.jl`
+- `julia --project=. section3-priors.jl`
+- `julia --project=. section4-combined-diagnostics.jl`
+- `julia --project=. section6-ecs.jl`
 
 All figures are stored in a subdirectory `plots` of the `plot_dir` specified in `src/config.jl`. The default name for the created directory is `output`.
 
@@ -35,4 +35,4 @@ To recompute the data that we use, you can use the script `src/compute-data.jl`.
 
 ## Other
 
-The Manifest.toml file is published for reproducibility, as it contains the exact status of the julia environment that can be instantiated by running `Pkg.instantiate()`.
+The Manifest.toml file is published for reproducibility, as it contains the exact status of the julia environment that can be instantiated by running `using Pkg; Pkg.instantiate()`.
