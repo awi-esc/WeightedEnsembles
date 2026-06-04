@@ -1,6 +1,6 @@
 # WeightedEnsembles
 
-This repository contains all code for our paper **On combining climate models into weighted ensembles**.
+This repository contains all code for our paper **On combining climate models into weighted ensembles** ([see manuscript](manuscript/submission-on-combining-climate-models-into-weighted-ensembles.pdf)).
 
 ## Data
 
@@ -14,12 +14,25 @@ The original data that we load is (all regridded to 5x5 degrees):
 
 All processed data used in the paper is stored in `data`, which further contains .csv files listing all models and model runs used for the respective variable and experiment.
 
-## Plots
 
-To reproduce the figures from our paper, run the script for the respective section from the top level directory, e.g.:
+## Reproduce figures
 
-``julia --project=. src/section3-priors.jl``
+Activate and instantiate the julia project (WeightedEnsembles.jl) by running the following from the top-level directory (or use --project=path/to/WeightedEnsembles) where `-e` evaluates the following expression as julia code:
 
-The plots are stored in `output/plots/`. 
+``julia --project=. -e "using Pkg; Pkg.instantiate()"``
 
+Then run the following commands to create the figures from the paper for the respective sections:
 
+- `julia --project=. sectoin3-priors.jl`
+- `julia --project=. sectoin4-combined-diagnostics.jl`
+- `julia --project=. sectoin6-ecs.jl`
+
+All figures are stored in a subdirectory `plots` of the `plot_dir` specified in `src/config.jl`. The default name for the created directory is `output`.
+
+## Preprocess data 
+
+To recompute the data that we use, you can use the script `src/compute-data.jl`. Update the paths where mentioned to point to your raw data. The generated data will be stored in the `data_dir` specified in `src/config.jl`. So, to not overwrite our provided preprocessed data, this path must be changed.
+
+## Other
+
+The Manifest.toml file is published for reproducibility, as it contains the exact status of the julia environment that can be instantiated by running `Pkg.instantiate()`.
