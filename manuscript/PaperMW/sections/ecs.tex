@@ -1,0 +1,74 @@
+\section{Performance based on Equilibrium Climate Sensitivity}\label{sec:ecs}
+
+ECS (Equilibrium Climate Sensitivity) as well as TCR (Transient Climate Response) are promising metrics to compute model weights as they are strongly related to future climate change and most of the uncertainty in future climate projections is attributable to the uncertainty in ECS \citep{sherwoodAssessmentEarthsClimate2020,armourEarthsEnergyBudget2021}.
+Here, we will focus on ECS and show how to use it as performance metric in a fully Bayesian way. 
+ECS has been used previously to compute model weights, for example by \citet{massoudBayesianWeightingClimate2023} who also used an ensemble weighting approach, as we do here, yet without spelling it out completely in a Bayesian framework.
+
+We aim to infer the posterior probability of weight vectors $\mathbf{w}$ given model predictions $M$ (here referring to the models' ECS values):
+%
+\begin{equation}
+    P(\mathbf{w}\mid M) \propto P(M^*\mid \mathbf{w}) \cdot P(\mathbf{w})
+\end{equation}
+%
+We use all CMIP6 models for which we have ECS values, as well as near-surface-air temperatures for SSP585 projections and the historical time period from 1850-1900 available ($N=38$). % the data needed to approximate a model's ECS value with the Gregory method (piControl, 4xCO2 for near-surface-air temperature) as well as projection data for near-surface-air temperatures.
+As likelihood function, i.e.~to evaluate the ``performance'' of a weighted average model, that we also refer to as $\mathcal{M}_*$ model, we use the distribution of likely ECS values that \citet{sherwoodAssessmentEarthsClimate2020} derived based on various lines of evidence.
+For the prior distribution over weight vectors $\mathbf{w}$ we use a Dirichlet distribution. As we showed in Section \ref{sec:priors}, the choice of the parameterization of the Dirichlet prior distribution is important since it influences the range of the considered data (here ECS values) of the resulting $\mathcal{M}_*$ models.
+Ideally, we want the prior weights to span the entire range between 0 and 1 so that a large part of the individual models' ECS values is covered by the prior weighted average models. We achieve this by setting the concentration parameter $\alpha$ to $\frac{1}{N}$. Figure \ref{fig:expected-ecs-dirichlet} shows the distribution of the ECS values for the weighted average models ($\mathcal{M}_*$), based on the prior (pink density) and posterior weights (green density), using Dirichlet($\alpha=\frac{1}{N}$) (left) and, for comparison, using Dirichlet($\alpha=1$) (right). 
+Only when the prior is sufficiently broad (Fig.~\ref{fig:expected-ecs-dirichlet}a), does the mean ECS value of the $\mathcal{M}_*$ models, computed based on the posterior weights, shift towards the likely range of the target distribution at around $3^\circ$ Celsius, below the multi-model mean.
+When $\alpha = 1$ (Fig.~\ref{fig:expected-ecs-dirichlet}b), the range of $\emph{a priori}$ considered ECS values tightly sits around the multi-model mean as, with this parameterization, on average each model receives equal weight. 
+
+
+%When all $\alpha_i=\frac{1}{N}$, the weight vectors tend to be more sparse such that most probability mass is assigned to just a few models, which in turn, broadens the range of \emph{a priori} considered ECS values.
+
+% I think since we have the other plot with the prior distributions in the beginning now, we can skip the extra prior plots here
+\begin{figure}
+    \centering
+    %\includegraphics{sections/figures/ecs/expected-ecs-posterior-dirichlet-distributions.pdf}
+    \includegraphics{sections/figures/fig8.pdf}
+    \caption{Distributions of expected ECS values of weighted ensembles with $N=38$ CMIP6 models, based on prior (pink) and posterior (green) weights, using a Dirichlet prior distribution with (a) $\alpha = \frac{1}{N}$ and with (b) $\alpha = 1$ (right). The black curve is the likelihood function and represents the estimated range of ECS values from \citet{sherwoodAssessmentEarthsClimate2020}.
+    }
+    \label{fig:expected-ecs-dirichlet}
+\end{figure}
+
+
+\begin{figure}
+    \centering
+    %\includegraphics{sections/figures/ecs/projections-bma-mmm-with-prior.pdf}
+    \includegraphics{sections/figures/fig9.pdf}
+    \caption{Predicted increase in global mean near-surface air temperature with respect to the time period from 1995--2014 until the end of the century, under emission scenario SSP5.85, using an ensemble of $N=38$ CMIP6 models. Thick lines show the observations (black), the multi-model mean (orange) and the weighted averages, using the mean posterior (blue) and mean prior (dashed purple) weights when applying the ensemble performance weighting approach with prior Dirichlet($\mathbf{\frac{1}{N}}$) and with the target distribution from Fig.~\ref{fig:expected-ecs-dirichlet} as likelihood. Uncertainty bands (shaded regions) represent the 0.05 and 0.95 quantiles of the predicted (weighted) ensemble spread.}
+    \label{fig:projections-mmm-bma}
+\end{figure}
+
+We use the computed posterior over weight vectors and apply it to future projections of the increase in global mean near-surface air temperature. 
+%\begin{equation}
+ %   P(y^{\Delta\textrm{tas}}\mid M^{\Delta\textrm{tas}}) = \int_{\mathbf{w}} P(M^{\Delta\textrm{tas}}_* \mid M^{\Delta\textrm{tas}}, \mathbf{w}) \cdot P(\mathbf{w}) d\mathbf{w}
+%\end{equation}
+%
+%where $\Delta {\textrm{tas}}$ refers to the anomalies with respect to the time period from 1995--2014.
+As shown in Fig.~\ref{fig:projections-mmm-bma}, the expected increase in global mean temperatures is lower in the weighted (blue) than in the unweighted (orange) ensemble which we would hope to see, given the known tendency of CMIP6 models to overestimate future warming \citep[e.g.~][]{tokarskaWarmingTrendConstrains2020,hausfatherClimateSimulationsRecognize2022}.
+The uncertainty range (inner 90\% quantile) is substantially reduced in the weighted ensemble as compared to the unweighted ensemble spread.
+A reduced uncertainty range is expected by the mere fact that we consider weighted averages. 
+For comparison, the thin dashed green lines in Fig.~\ref{fig:projections-mmm-bma}, show the 0.05 and 0.95 quantiles for the prior weighted ensemble, i.e.~using the prior weights (Dirichlet($\alpha = \frac{1}{N}$)). The 90\% inner quantile range of the unweighted ensemble is in between 1.26 and 1.56 times larger than the 90\% inner quantile range of the prior weighted ensemble (mean 1.36). 
+This shows how much of the reduced uncertainty of the posterior weighted ensemble is just due to the choice of the prior distribution, and how much can be attributed to the data.
+In any case, it is important to note that the weighting is not necessarily better the smaller the resulting uncertainty range is.
+If, in the ensemble weighting approach, the prior strongly restricts the considered weighted averages (as in Fig.~\ref{fig:expected-ecs-dirichlet}b), this will influence the uncertainty range of the weighted ensemble for the target variable in that it will be unreasonably small. Therefore, in the ensemble performance weighting approach, prior predictive checks become indispensable for a reasonable interpretation of the weighted ensemble. Figure \ref{fig:appendix-projections-mmm-bma} in the appendix (sec.~\ref{sec:appendix}) shows the drastically reduced uncertainty range for the weighted projections when using a Dirichlet prior with $\alpha=1$, i.e.~corresponding to the data in Fig.~\ref{fig:expected-ecs-dirichlet}b. 
+
+How skillful a weighting approach generally is compared to using an unweighted ensemble should furthermore always be assessed through tests \citep[][]{abramowitzESDReviewsModel2019}. If the computed weights are based on historical data, perfect model tests are an option, where one model is removed from the ensemble, and its predictions are considered as ``observations''. It can then be checked whether the pseudo-observations lie in the predicted range for future timesteps. This procedure is then repeatedly done, each time using a different model as ``perfect model'' \citep[e.g.,see][]{brunnerReducedGlobalWarming2020}. Another option is classical calibration-validation where a subset of the observed data is left out for computing the weights. These data can then be used to test whether the weighted ensemble predicts the out-of-sample data better than the unweighted ensemble. Using ECS as performance metric, as we do here, is different in that it involves an independently derived likelihood function. 
+In this case, one option is to check whether the ECS-based weighting is valuable for weighting the model predictions for the historical period.
+As expected after consideration of the results in Fig.~\ref{fig:projections-mmm-bma}, the ECS-based weighting is not particularly valuable to weigh the historical period.  The summed RMSEs between the observations and the predicted mean values across all years between 1950 and 2014, is nearly identical for the unweighted and the weighted $M_*$ model using the mean posterior weight vector. With the weighted ensemble, the RMSE is only marginally smaller (37.68 vs. 37.83 or on average per timestep 0.5796 vs.0.5820). For future projections, ECS will however become more important as we see in Fig.~\ref{fig:projections-mmm-bma}, where the ECS-weighting constrains the predictions more in the future than it does in the historical period.
+
+
+% Estimation of ECS based on Gregory method:
+\begin{comment}
+Climate sensitivity measures the size of the global average surface air temperature response to a radiative forcing applied to the climate system \citep{gregoryNewMethodDiagnosing2004}.
+In its original definition, Equilibrium Climate Sensitivity (ECS) refers to the global mean surface air temperature change after an instantaneous doubling of the atmospheric CO$_2$ concentration after reaching equilibrium.
+As this is computationally expensive to compute, ECS is usually approximated by the ``effective climate sensitivity'' \citep{schlundEmergentConstraintsEquilibrium2020} using the Gregory method \citep{gregoryNewMethodDiagnosing2004}. 
+This is computed based on the first 150 years after an instantaneous quadrupling of the atmospheric CO$_2$ concentration, namely by regressing the top-of-atmosphere net downward radiation $N$ against the global mean surface air temperature change $\Delta T$. In a steady-state climate, $N$ equals 0.
+%
+\begin{align}
+    & N = F - H \\
+    & \label{eq:ecs-gregory} N \approx F - \alpha \Delta T
+\end{align}
+%
+where $F$ is the effective radiative forcing from a quadrupling of the atmospheric CO$_2$ concentration, $H$ is the radiative response and $\alpha$ is the climate feedback parameter \citep[][]{andrewsForcingFeedbacksClimate2012a}.
+\end{comment}

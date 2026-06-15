@@ -1,0 +1,13 @@
+\conclusions  \label{sec:conclusion}%% \conclusions[modified heading if necessary]
+
+
+With this paper we aimed to find a common terminology to categorise different approaches to compute model weights that facilitates a comparison between them, and makes their underlying assumptions transparent. For that we distinguish between two general methods that we call the \emph{individual performance weighting} and the \emph{ensemble performance weighting approach}. The former comprises all methods that compute a single weight vector where each model is assigned a probability relative to its individual performance while methods belonging to the latter compute a distribution over weight vectors tuned to optimize the performance of the weighted ensemble as a whole. 
+The ensemble performance weighting approach, for instance, has the advantage to implicitly account for model inter-dependencies. However, which method is more appropriate will be different from case to case depending on the target application of the model weights. When using the ensemble performance weighting approach, we showed that a careful assessment of the prior distribution is necessary to draw appropriate conclusions about the resulting posterior weights and their application to target variables. Overall, our analyses showed the importance of explicitly acknowledging the influence of our choices, starting with the general approach to compute model weights. 
+
+
+%Weights based on the latter approach have the benefit that they already contain information about possible co-dependencies between the models in the ensemble which have to be accounted for separately in the individual weighting approach.
+%Furthermore, this approach naturally incorporates uncertainties of the weights instead of assuming a single ``true'' weight vector.
+%We therefore highly recommend using the ensemble performance weighting approach to compute model weights.
+%We have shown that, under this approach, it is further advisable, when using multiple diagnostics, to apply them jointly instead of sequentially and then averaging the mean weights.
+
+

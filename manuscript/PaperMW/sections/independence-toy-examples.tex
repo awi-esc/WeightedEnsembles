@@ -1,0 +1,79 @@
+\section{Model dependence}\label{sec:dependence}
+
+We would like to use three schematic (toy) examples to illustrate how the possible lack of independence between ensemble members can influence the weights obtained when using individual or ensemble performance weighting. 
+In each case, we use an ensemble of two base models, $\mathcal{M}_1$ and $\mathcal{M}_2$, whose predictions are systematically constructed based on the 1980--2014 mean near-surface air temperature anomalies with respect to the global mean, obtained from ERA5 \citep{hersbachERA5GlobalReanalysis2020a}. %for the climatology for the same time period.
+
+In the first case, we assume that the first model ($\mathcal{M}_1$) makes perfect predictions in the Eastern Hemisphere, while in the Western Hemisphere, a random error sampled from $\mathcal{N}(0,2)$ is added to the field. For the second model ($\mathcal{M}_2$), the same random error is added in the Eastern Hemisphere, and perfect predictions are obtained in the West. In this way, we get two models with the exact same mean squared error (MSE) with respect to the observed data and we know that the weighting that would minimize the total combined error would be $w_1=w_2=0.5$. The data for this case are shown in Fig.~\ref{fig:independence-error-pattern}.\footnote{For better visualization, Fig.~\ref{fig:independence-error-pattern}--\ref{fig:independence-real-data} exclude the polar regions, but all data was used in the computations.}
+
+\begin{figure}
+    \centering
+    %\includegraphics{sections/figures/independence/data-error-pattern.pdf}
+    \includegraphics{sections/figures/fig3.pdf}
+    \caption{Generated toy data with same error pattern for both models. (a) Observations, near-surface air temperature anomalies in the time between 1980 and 2014 with respect to the global mean value of this time period. (b) $M_1(s) = Y(s) + \mathcal{N}(0,2)$ where $s$ is a grid point in the Western hemisphere. For all $s$ in the Eastern hemisphere, the predictions of model 1 are identical to the observations. (c) Predictions of model 2, with identical errors as for model 1, yet in the Eastern hemisphere, while predictions in the Western hemisphere are perfect.}
+    \label{fig:independence-error-pattern}
+\end{figure}
+
+In the second case, we set the predictions for the two models everywhere to the observed data and independently add the noise to both models (again sampled from $\mathcal{N}(0,2)$). Therefore, in this example, the mean squared errors will be similar, but are very unlikely to cancel out at every grid point. The constructed data for this case are shown in Fig.~\ref{fig:independence-random-error}.
+
+\begin{figure}
+    \centering
+    %\includegraphics{sections/figures/independence/data-random-err.pdf}
+    \includegraphics{sections/figures/fig4.pdf}
+    \caption{Generated toy data with independent noise per model. (a) Observations, near-surface air temperature anomalies in the time between 1980 and 2014 with respect to the global mean value of this time period. (b) $M_1(s) = Y(s) + \mathcal{N}(0,2)$. (c) Predictions of model 2, analogous to model $\mathcal{M}_1$, but with independently sampled noise.}
+    \label{fig:independence-random-error}
+\end{figure}
+
+In the third example, we do not construct data, but use the predictions for the same variable and diagnostic from two real models, namely from AWI-CM-1-1-MR and CESM2-WACCM. These data are shown in Fig.~\ref{fig:independence-real-data}.
+
+\begin{figure}
+    \centering
+    %\includegraphics{sections/figures/independence/data-real-models.pdf}
+    \includegraphics{sections/figures/fig4.pdf}
+    \caption{Observations of near-surface air temperature anomalies in the time between 1980 and 2014 with respect to the global mean value of this time period (a) and corresponding predictions of two real models, AWI-CM-1-1-MR (b) and CESM2-WACCM (c).}
+    \label{fig:independence-real-data}
+\end{figure}
+
+In each of the three toy examples described above, we build ensembles of different sizes by adding copies of model $\mathcal{M}_2$. We know that, by construction, the correct weight of model $\mathcal{M}_1$ (included just once) will always have the same value, irrespective of the number of copies of model $\mathcal{M}_2$ included in the ensemble (and conversely, the sum of weights attributed to the included copies of model $\mathcal{M}_2$ should be equal to the constant value $1-w_1$). In the first toy example, both models have the exact same performance (same MSE) so that the weight for $\mathcal{M}_1$ should remain at $\frac{1}{2}$, while the individual copies of model $\mathcal{M}_2$ should each receive a weight of $\frac{1}{2}\cdot \frac{1}{n_2}$ where $n_2$ is the number of included copies for $\mathcal{M}_2$. The same pattern should apply to the other two toy examples, but with the weight for $\mathcal{M}_1$ remaining at whatever value it receives when model $\mathcal{M}_2$ is included in the ensemble only once. In the second toy example, where we use random errors, this should still be close to $\frac{1}{2}$ whereas in the third example with real model data it depends on how much better or worse $\mathcal{M}_1$ is compared to $\mathcal{M}_2$. In the case that the model weights deviate from these expectations, it implies that the known (strong) dependence between the copies of model $\mathcal{M}_2$ is not properly accounted for.
+
+\begin{figure}
+    \centering
+    %\includegraphics{sections/figures/independence/independence-copies-mse-gaussian-dirichlet-1-over-n.pdf}
+    \includegraphics{sections/figures/fig6.pdf}
+    \caption{Model weights for models in an ensemble consisting of model $\mathcal{M}_1$ and $n_2$ copies of model $\mathcal{M}_2$. Panels a-c show the computed weights in the individual performance weighting approach, panels d-f show the mean posterior weights in the ensemble performance weighting approach. Columns refer to the three different toy examples. Toy example 1 (a+d): $\mathcal{M}_1$ and $\mathcal{M}_2$ predict one half of the data perfectly and show the same bias ($\mathcal{N}(0,2)$) in the other half. Toy example 2 (b+e): Model predictions are constructed from the observed data plus some random noise everywhere: $m_i = y + \epsilon$ where $\epsilon \sim \mathcal{N}(0, 2)$. Toy example 3 (c+f): $\mathcal{M}_1$ and $\mathcal{M}_2$ correspond to AWI-CM-1-1-MR and CESM2-WACCM. The two values in brackets in the titles are the mean squared errors for models $\mathcal{M}_1$ and $\mathcal{M}_2$ in the respective example.}
+    \label{fig:toy-examples-results}
+\end{figure}
+
+Figure \ref{fig:toy-examples-results} shows the resulting weights for these toy examples, using individual or ensemble performance weighting. In the individual performance weighting approach, we evaluate the models by their MSEs (identical to using the sum of squared errors). In the ensemble performance weighting approach, we use a Gaussian likelihood function with the variance jointly sampled with the weight vectors; the shown weights are the mean posterior weights. For the prior over weight vectors, we use a Dirichlet distribution with $\alpha_i = \frac{1}{N} \forall i$ where $N$ is the respective total number of models in the considered ensemble. 
+%In Section \ref{sec:ecs}, we look at the influence of the prior, and particularly show why this parameterization should be preferred over using $\mathbf{1}$, which might seem to be a natural choice too.
+
+\begin{figure}
+    \centering
+    %\includegraphics{sections/figures/independence/independence-copies-posterior-weights-gaussian-dirichlet-1-over-n.pdf}\qquad
+    %\includegraphics{sections/figures/independence/independence-copies-correlations-dirichlet-1-over-n.pdf}
+    \includegraphics{sections/figures/fig7a.pdf}\qquad
+    \includegraphics{sections/figures/fig7b.pdf}
+   \caption{Posterior samples using the ensemble performance weighting approach for a toy ensemble of 3 models and with Gaussian errors centered around 0; the variance is jointly sampled with the weight vectors. Green stars show the mean values.}
+    \label{fig:toy-examples-posterior-weights}
+\end{figure}
+
+In the individual weighting approach, the weights for model $\mathcal{M}_1$ decrease as $N$ increases, essentially following the relationship $w_1=\frac{1}{N}$.
+In this case the weight given to any individual copy of model $\mathcal{M}_2$ follows the same relationship. This means that the total weight assigned to  $\mathcal{M}_2$ increases to $\frac{N-1}{N}$.
+%That is, as the number of copies of model $\mathcal{M}_2$ increases, model $\mathcal{M}_2$ is given more weight overall in the ensemble compared to model $\mathcal{M}_1$. 
+Conversely, in the ensemble weighting approach, neither the weight for model $\mathcal{M}_1$ nor the summed weight across all copies of model $\mathcal{M}_2$ changes with increasing $N$.
+%\footnote{When using a Dirichlet prior with all $\alpha_i=1$, we do see a bit of a drop of the weight assigned to model $\mathcal{M}_1$ when as much as 10 copies of model $\mathcal{M}_2$ are included in the ensemble using real data (lower right plot, Fig.~\ref{fig:toy-examples-results}).
+%This can, however, be explained by the prior that becomes more influential when more copies are included. With a larger number of copies, increase the number of parameters (weights) to be inferred, but the additional data (the copies of $\mathcal{M}_2$) does not provide any new information.
+%Given that the decrease of the weight for model $\mathcal{M}_1$ is marginal compared to the decrease observed in the individual performance weighting approach and given the rather artificial assumption of 10 exact copies of one model, it is still justifiable to conclude that the ensemble weighting approach is able to account for the dependencies among the models, which we introduced by adding $n$ copies of model $\mathcal{M}_2$ to the ensemble.} 
+Thus, only the ensemble weighting approach is able to account for the dependencies among the models in the ensemble that we introduced by adding copies of model $\mathcal{M}_2$ to the ensemble.
+When performance is measured for the entire ensemble, adding copies of one model does not have an effect on the mean weights since no new information is added. In the individual weighting approach, a newly added copy, however, is seen to add information to the ensemble by definition as every model is considered separately.
+Implicitly accounting for model dependence is a strong advantage of the ensemble weighting approach, making the additional computation of independence weights unnecessary.
+Nonetheless, in the individual weighting approach, it is possible to combine performance and separately determined independence weights so that the weight of dependent models is reduced \citep[e.g.~see tests from][]{brunnerReducedGlobalWarming2020}.
+
+% Interpretation of model weights
+To show why the ensemble weighting approach implicitly accounts for model dependency, Fig.~\ref{fig:toy-examples-posterior-weights} shows the posterior weights for our third toy example, using real data of two CMIP6 models in an ensemble with three members, including $\mathcal{M}_1$ once and $\mathcal{M}_2$ twice. 
+We can see that there is a strong correlation between the weights of the two copies of model $\mathcal{M}_2$ (Fig.~\ref{fig:toy-examples-posterior-weights}a).
+If the weight of the first copy is high, then the weight of the second copy is necessarily low. 
+This effect was also shown for a simpler case by \citet{massoudBayesianModelAveraging2020}.
+Contrary to that, the weight of (each copy of) model $\mathcal{M}_2$ does not depend on the weight of model $\mathcal{M}_1$ except for the constraint that the weights of all models have to sum up to 1.
+This is also reflected in the variance of the posterior weights (Fig.~\ref{fig:toy-examples-posterior-weights}b): while the variance for the weights of the two copies of model $\mathcal{M}_2$ is large, the variance for the independent model ($\mathcal{M}_1$) is quite small.
+
+Furthermore, remember that any single weight vector sampled from the posterior distribution does not reflect each model's performance like it does in the individual performance weighting approach. For example, when $w_1 = 0.8, w_{2.1}=0.2$ and $w_{2.2}=0.0$ where $w_{2.1}$ and $w_{2.2}$ refer to the weights for the two copies of model $\mathcal{M}_2$, this does not mean that the first copy of model $\mathcal{M}_2$ shows a better performance than the second copy of the same model with respect to the observed data. Nonetheless, the average weight vector does reflect the relative performance of each model within the given ensemble. In this example, the average weight of each copy of $\mathcal{M}_2$ is the same, reflecting that each copy of this model shows equivalent performance (or contributes the same information to the ensemble mean). This difference between sampled weight vectors and the mean weight vector highlights how the conceptualization of the problem is fundamentally different than when individual performance weighting is used.
