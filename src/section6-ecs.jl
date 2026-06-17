@@ -129,159 +129,167 @@ alpha = 0.25;
 linewidth = 3;
 
 # choose weights
-idx = 1 # Prior Dirichlet(1) (for appendix)
-idx = 2 # Prior Dirichlet(1/N) (main text)
-begin
-    ws_posterior_dirichlet = weights_posteriors[idx] 
-    ws_prior_dirichlet = weights_priors[idx]
-end
+#idx = 1 # Prior Dirichlet(1) (for appendix)
+#idx = 2 # Prior Dirichlet(1/N) (main text)
 
-# choose which weightings to show
-begin
-    add_prior = true;
-    add_unweighted = true;
-    add_ipw = false;
-    add_epw = true;
-    add_mean_posterior = false;
-end
-begin
-    plots_legend = []
-    labels_legend = []
-    f = Figure(size=(560, 280))
-        ax = Axis(
-            f[1,1], 
-            ylabel = "Increase in global mean tas in °C\n reference period: 1995-2014", 
-            xticks = (years_all[1:10:end], string.(years_all[1:10:end]))
-        )
-    Makie.xlims!(ax, years_all[1], years_all[end])
-    years = Dict(
-        "ssp585" => years_proj,
-        "historical" => years_hist
-    )
-    for (i, experiment) in enumerate(collect(keys(df)))
-        data = df[experiment]
-        n_timesteps = size(data, :time)
-        
-        # Multi Model Mean with quantiles
-        if add_unweighted
-            quantiles_data = zeros(5, n_timesteps)
-            for t in 1:n_timesteps
-                quantiles = map(p -> mwd.quantile(vec(data[time=t]), p), [0.05, 0.25, 0.5, 0.75, 0.95])
-                quantiles_data[:, t] .= quantiles
-            end
-            mmm_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[2], alpha=alpha)
-            if i==1
-                push!(plots_legend, [mmm_band])#, mmm])
-                push!(labels_legend, "Unweighted (multi-model mean)")
-            end
-        end
-        # Prior
-        weighted_data_prior = zeros(n_iter, n_timesteps)
-        if add_prior
-            for i in 1:n_iter
-                wavg = mww.weightedAvg(data, ws_prior_dirichlet[i,:,chain])
-                weighted_data_prior[i, :] .= wavg
-            end
-            quantiles_data = zeros(5,n_timesteps)
-            for t in 1:n_timesteps
-                quantiles = map(p -> mwd.quantile(weighted_data_prior[:,t], p), [0.05, 0.25, 0.5, 0.75, 0.95])
-                quantiles_data[:, t] .= quantiles
-            end
-            prior_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[3], alpha=alpha)
-            if i==1
-                push!(plots_legend, [prior_band])
-                push!(labels_legend, "Ensemble performance weighting (prior)")
-            end
-        end
-        # Ensemble performance weighting posterior
-        weighted_data_posterior = zeros(n_iter, n_timesteps)
-        if add_epw
-            for i in 1:n_iter
-                wavg = mww.weightedAvg(data, ws_posterior_dirichlet[i,:,chain])
-                weighted_data_posterior[i, :] .= wavg
-            end
+for idx in 1:2
+    begin
+        ws_posterior_dirichlet = weights_posteriors[idx] 
+        ws_prior_dirichlet = weights_priors[idx]
+    end
 
-            quantiles_data = zeros(5,n_timesteps)
-            for t in 1:n_timesteps
-                quantiles = map(p -> mwd.quantile(weighted_data_posterior[:,t], p), [0.05, 0.25, 0.5, 0.75, 0.95])
-                quantiles_data[:, t] .= quantiles
-            end
-
-            ew_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[1], alpha=alpha)            
-            if i==1
-                push!(plots_legend, [ew_band])
-                push!(labels_legend, "Ensemble performance weighting (posterior)")
-            end
-        end
-
-        mmm = Makie.lines!(
-            ax, 
-            years[experiment], 
-            vec(mean(data; dims=:model)), 
-            color=COLORS_PROJ[2], 
-            label = "Unweighted (multi-model mean)", 
-            linewidth=linewidth
-        )            
-        if add_prior
-            prior_mean = Makie.lines!(
-                ax, years[experiment], vec(mean(weighted_data_prior; dims=1)), 
-                color = COLORS_PROJ[3], 
-                label = "Ensemble performance weighting (prior)", 
-                linewidth = 2,
-                linestyle = :dash
+    # choose which weightings to show
+    begin
+        add_prior = true;
+        add_unweighted = true;
+        add_ipw = false;
+        add_epw = true;
+        add_mean_posterior = false;
+    end
+    begin
+        plots_legend = []
+        labels_legend = []
+        f = Figure(size=(560, 280))
+            ax = Axis(
+                f[1,1], 
+                ylabel = "Increase in global mean tas in °C\n reference period: 1995-2014", 
+                xticks = (years_all[1:10:end], string.(years_all[1:10:end]))
             )
-        end
-        if add_epw
-            ew_mean = Makie.lines!(
+        Makie.xlims!(ax, years_all[1], years_all[end])
+        years = Dict(
+            "ssp585" => years_proj,
+            "historical" => years_hist
+        )
+        for (i, experiment) in enumerate(collect(keys(df)))
+            data = df[experiment]
+            n_timesteps = size(data, :time)
+            
+            # Multi Model Mean with quantiles
+            if add_unweighted
+                quantiles_data = zeros(5, n_timesteps)
+                for t in 1:n_timesteps
+                    quantiles = map(p -> mwd.quantile(vec(data[time=t]), p), [0.05, 0.25, 0.5, 0.75, 0.95])
+                    quantiles_data[:, t] .= quantiles
+                end
+                mmm_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[2], alpha=alpha)
+                if i==1
+                    push!(plots_legend, [mmm_band])#, mmm])
+                    push!(labels_legend, "Unweighted (multi-model mean)")
+                end
+            end
+            # Prior
+            weighted_data_prior = zeros(n_iter, n_timesteps)
+            if add_prior
+                for i in 1:n_iter
+                    wavg = mww.weightedAvg(data, ws_prior_dirichlet[i,:,chain])
+                    weighted_data_prior[i, :] .= wavg
+                end
+                quantiles_data = zeros(5,n_timesteps)
+                for t in 1:n_timesteps
+                    quantiles = map(p -> mwd.quantile(weighted_data_prior[:,t], p), [0.05, 0.25, 0.5, 0.75, 0.95])
+                    quantiles_data[:, t] .= quantiles
+                end
+                prior_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[3], alpha=alpha)
+                if i==1
+                    push!(plots_legend, [prior_band])
+                    push!(labels_legend, "Ensemble performance weighting (prior)")
+                end
+            end
+            # Ensemble performance weighting posterior
+            weighted_data_posterior = zeros(n_iter, n_timesteps)
+            if add_epw
+                for i in 1:n_iter
+                    wavg = mww.weightedAvg(data, ws_posterior_dirichlet[i,:,chain])
+                    weighted_data_posterior[i, :] .= wavg
+                end
+
+                quantiles_data = zeros(5,n_timesteps)
+                for t in 1:n_timesteps
+                    quantiles = map(p -> mwd.quantile(weighted_data_posterior[:,t], p), [0.05, 0.25, 0.5, 0.75, 0.95])
+                    quantiles_data[:, t] .= quantiles
+                end
+
+                ew_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS_PROJ[1], alpha=alpha)            
+                if i==1
+                    push!(plots_legend, [ew_band])
+                    push!(labels_legend, "Ensemble performance weighting (posterior)")
+                end
+            end
+
+            mmm = Makie.lines!(
                 ax, 
                 years[experiment], 
-                vec(mean(weighted_data_posterior; dims=1)), 
-                color=COLORS_PROJ[1], 
-                label = "Ensemble performance weighting (posterior)", 
-                linewidth = linewidth
-            )
-        end
+                vec(mean(data; dims=:model)), 
+                color=COLORS_PROJ[2], 
+                label = "Unweighted (multi-model mean)", 
+                linewidth=linewidth
+            )            
+            if add_prior
+                prior_mean = Makie.lines!(
+                    ax, years[experiment], vec(mean(weighted_data_prior; dims=1)), 
+                    color = COLORS_PROJ[3], 
+                    label = "Ensemble performance weighting (prior)", 
+                    linewidth = 2,
+                    linestyle = :dash
+                )
+            end
+            if add_epw
+                ew_mean = Makie.lines!(
+                    ax, 
+                    years[experiment], 
+                    vec(mean(weighted_data_posterior; dims=1)), 
+                    color=COLORS_PROJ[1], 
+                    label = "Ensemble performance weighting (posterior)", 
+                    linewidth = linewidth
+                )
+            end
 
-        # -------------------------------------------------------------------------------- #
-        # Add individual performance weighting and mean posterior weight vector (not in paper)#
-        # weighted averages for each timestep with mean posterior weight vector 
-        if add_mean_posterior
-            w_mean = mean(ws_posterior_dirichlet[:,:,chain]; dims=1)
-            wavg = mww.weightedAvg(data, vec(w_mean))
-            quantiles_data = zeros(5, n_timesteps)
-            for t in 1:n_timesteps
-                quantiles = map(p -> mwd.quantile(vec(data[time=t]), p; w=w_mean), [0.05, 0.25, 0.5, 0.75, 0.95])
-                quantiles_data[:, t] .= quantiles
+            # -------------------------------------------------------------------------------- #
+            # Add individual performance weighting and mean posterior weight vector (not in paper)#
+            # weighted averages for each timestep with mean posterior weight vector 
+            if add_mean_posterior
+                w_mean = mean(ws_posterior_dirichlet[:,:,chain]; dims=1)
+                wavg = mww.weightedAvg(data, vec(w_mean))
+                quantiles_data = zeros(5, n_timesteps)
+                for t in 1:n_timesteps
+                    quantiles = map(p -> mwd.quantile(vec(data[time=t]), p; w=w_mean), [0.05, 0.25, 0.5, 0.75, 0.95])
+                    quantiles_data[:, t] .= quantiles
+                end
+                mmm_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS[5], alpha=alpha)
+                mmm = Makie.lines!(ax, years[experiment], vec(wavg), color=COLORS[5], label = "Weighted (mean posterior)", linewidth=3)            
+                if i==1
+                    push!(plots_legend, [mmm_band, mmm])
+                    push!(labels_legend, "Weighted (mean posterior)")
+                end
             end
-            mmm_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS[5], alpha=alpha)
-            mmm = Makie.lines!(ax, years[experiment], vec(wavg), color=COLORS[5], label = "Weighted (mean posterior)", linewidth=3)            
-            if i==1
-                push!(plots_legend, [mmm_band, mmm])
-                push!(labels_legend, "Weighted (mean posterior)")
+            # weighted averages for each timestep with individual performance weight vector 
+            if add_ipw
+                wavg = mww.weightedAvg(data, vec(iw_weights))
+                quantiles_data = zeros(5, n_timesteps)
+                for t in 1:n_timesteps
+                    quantiles = map(p -> mwd.quantile(vec(data[time=t]), p; w=iw_weights), [0.05, 0.25, 0.5, 0.75, 0.95])
+                    quantiles_data[:, t] .= quantiles
+                end
+                mmm_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS[4], alpha=alpha)
+                mmm = Makie.lines!(ax, years[experiment], vec(wavg), color=COLORS[4], label = "Weighted (individual)", linewidth=3)            
+                if i==1
+                    push!(plots_legend, [mmm_band, mmm])
+                    push!(labels_legend, "Weighted (individual)")
+                end
             end
+            # -------------------------------------------------------------------------------- #
         end
-        # weighted averages for each timestep with individual performance weight vector 
-        if add_ipw
-            wavg = mww.weightedAvg(data, vec(iw_weights))
-            quantiles_data = zeros(5, n_timesteps)
-            for t in 1:n_timesteps
-                quantiles = map(p -> mwd.quantile(vec(data[time=t]), p; w=iw_weights), [0.05, 0.25, 0.5, 0.75, 0.95])
-                quantiles_data[:, t] .= quantiles
-            end
-            mmm_band = Makie.band!(ax, years[experiment],  quantiles_data[1,:], quantiles_data[end,:], color=COLORS[4], alpha=alpha)
-            mmm = Makie.lines!(ax, years[experiment], vec(wavg), color=COLORS[4], label = "Weighted (individual)", linewidth=3)            
-            if i==1
-                push!(plots_legend, [mmm_band, mmm])
-                push!(labels_legend, "Weighted (individual)")
-            end
-        end
-        # -------------------------------------------------------------------------------- #
+        # add observational data
+        Makie.lines!(ax, years_hist, obs_anom.data, color=:black, label = "Observational data")
+        axislegend(ax, position = :lt, merge=true)
+        f
     end
-    # add observational data
-    Makie.lines!(ax, years_hist, obs_anom.data, color=:black, label = "Observational data")
-    axislegend(ax, position = :lt, merge=true)
-    f
+    if idx == 1
+        mwp.savePlot(f, joinpath(plot_dir, "figA1.pdf")) # for idx=1 (Prior: Dir(1))
+    elseif idx == 2
+        mwp.savePlot(f, joinpath(plot_dir, "fig9.pdf")) # for idx=2 (Prior: Dir(1/N))
+    end
 end
-mwp.savePlot(f, joinpath(plot_dir, "fig9.pdf")) # for idx=2 (Prior: Dir(1/N))
-mwp.savePlot(f, joinpath(plot_dir, "figA1.pdf"); overwrite=true) # for idx=1 (Prior: Dir(1))
+
+
 
