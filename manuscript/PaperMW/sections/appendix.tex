@@ -6,7 +6,7 @@
 
 Figure \ref{fig:appendix-projections-mmm-bma} shows the influence of using a prior distribution over weight vectors in the ensemble performance weighting approach that strongly restricts the considered data. Here, we use a Dirichlet prior with concentration parameter $\alpha=1$ that yields weight vectors with roughly equal weights assigned to every model. This strongly restricts the predictions of the weighted average models that are considered \emph{a priori} as shown in Fig.~\ref{fig:expected-ecs-dirichlet}b in the main text. This, in turn, is reflected in Fig.~\ref{fig:appendix-projections-mmm-bma} where the shown inner 90\% uncertainty range for the projected increase in global mean temperature is nearly identical when using the prior weight vectors as compared to using the posterior weight vectors. Therefore, this extremely narrow range is not due to the data: we get almost the same uncertainty range simply by using the chosen prior weights without any consideration of the likelihood function.
 
-\begin{figure}
+\begin{figure}[H]
     \centering
     %\includegraphics{sections/figures/appendix/projections-bma-mmm-with-prior-1.pdf}
     \includegraphics{sections/figures/figA1.pdf}
@@ -18,6 +18,26 @@ Figure \ref{fig:appendix-projections-mmm-bma} shows the influence of using a pri
 %\subsection{}     %% Appendix A1, A2, etc.
 
 %\footnote{Note that similarly to the case when $\sigma^2$ is sampled in the individual performance weighting approach, when using multiple diagnostics, it may happen that $\sigma_d^2$ for a diagnostic $d$ receives large values so that the observed data for this diagnostic is nearly equally likely under all weighted average models and all  }0
+
+\section{}\label{sec:appendix-B}
+
+Here we show examples of different weighting approaches that yield the same ranking order and only differ with respect to the magnitude of the individual weights. Note that for simplicity, we left out the area-weights here that should be applied for spatial data.
+
+\begin{enumerate}
+    \item Assume i.i.d Gaussian errors, i.e. $y(s) = m_i(s) + \epsilon$ with $\epsilon \sim \mathcal{N}(0,\sigma^2)$ and weights for model $i$ are proportional to the likelihood of the data under model $i$
+    \begin{itemize}
+        \item That is, we assume that each data point (y(s)) comes from a normal distribution with the prediction of model $i$ ($m_i$) as mean and with standard deviation $\sigma$.
+        \item The likelihood of the observed data under model $i$ is then given by $P(Y\mid M_i, \sigma) = \prod_{s} {\frac {1}{\sqrt {2\pi \sigma ^{2}}}}\exp {\left(-{\frac {(y(s) - m_i(s)^{2}}{2\sigma ^{2}}}\right)}$, iterating over all data points, e.g. all spatial locations $s$.
+        \item The log likelihood of all observed data is then given by: $-{\frac {n}{2}}\log(2\pi \sigma ^{2})-{\frac {1}{2\sigma ^{2}}}\sum _{i=1}^{n}\left(y(s)-m_i(s) \right)^{2}$
+        \item turned into a likelihood again: $w_i \propto \exp(c_1) - \exp(\frac{1}{2\sigma^2} \cdot \sum _{i=1}^{n}\left(y(s)-m_i(s) \right)^{2} = \exp(c_1) - \exp(c_2 \cdot \textrm{SSE})$; i.e. $w_i\propto \exp(-c_2\cdot SSE)$ where SSE is the sum of squared errors and $c_1, c_2$ are constants.
+    \end{itemize}
+
+\item \citet{sierraInformationtheoreticApproachObtain2025}: $w_i \propto \frac{1}{\hat{\sigma}^2}$ with $\hat{\sigma}^2 = \frac{\sum_{s} (m_i(s) - y(s))^2}{n} = \frac{\textrm{SSE}}{n} = \textrm{MSE}$. Therefore, $w_i \propto n \cdot \frac{1}{\textrm{SSE}}=\frac{1}{\textrm{MSE}}$ with MSE referring to the mean squared error.
+
+\item \citet{brunnerReducedGlobalWarming2020} performance weights for a single diagnostic variable: $w_i \propto \exp(-(\frac{\sqrt{\textrm{MSE}}}{\sigma_D})^2)$ where $\sigma_D$ is a tuned hyperparameter. 
+
+\end{enumerate}
+
 
 \begin{comment}
 \section{Bayesian Model Averaging}
