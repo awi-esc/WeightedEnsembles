@@ -40,14 +40,46 @@ Here we show examples of different weighting approaches that yield the same rank
 
 
 \begin{comment}
-\section{Bayesian Model Averaging}
+\section{Bayesian Model Averaging}\label{sec:appendix-bma}
+In the introduction we mentioned that some papers have referred to what we call the ‘Ensemble performance weighting’ approach as ‘Bayesian Model Averaging’, short BMA. However, in the statistical literature, BMA has a different meaning that we believe is worth disentangling and setting in relation to the ensemble performance weighting approach that we have described here. In the classical sense, BMA applies Bayesian inference on the problem of model selection by taking into account the uncertainties about the models themselves instead of assuming one specific model \citep[for a review on BMA see][]{fragosoBayesianModelAveraging2018}. For a concrete statistical model $\mathcal{M}$ with certain parameters, summarized as $\theta_{\mathcal{M}}$, we have the following quantities:
 
-BMA used as in the classical sense (weighted average of probability distributions where weights are posterior probabilities $P(\mathcal{M}_i\mid Y)$). to quantify predictive uncertainty:
-\citep{zhuIntercomparisonMultimodelEnsembleprocessing2023, zhuFutureProjectionsUncertainty2013, fanBayesianPosteriorPredictive2017}. 
-Review of BMA: \citet{fragosoBayesianModelAveraging2018}
+\begin{itemize}
+    \item[\textbullet] Posterior distribution: $P(\theta_{\mathcal{M}} \mid Y)$
+    \item[\textbullet] Likelihood: $P(Y\mid \theta_{\mathcal{M}})$
+    \item[\textbullet] Posterior Predictive Distribution for new data $\tilde{y}$:
+        \begin{equation}
+            P(\tilde{y}\mid Y, \mathcal{M}) = \int_{\theta_{\mathcal{M}}} P(\hat{y}\mid \theta_{\mathcal{M}}) P(\theta_{\mathcal{M}}\mid Y) d\theta_{\mathcal{M}}
+        \end{equation}
+\end{itemize}
 
-Classical BMA can also be described as applying Bayesian inference on the problem of model selection, it takes into account uncertainties about the models themselves.
-Statistically modeling the relationship between model outputs and observations and then using these weights to make probabilistic projections \citep{olsonSimpleMethodBayesian2016}.
+However, we may not be certain that this model is the best representation for our data. BMA now takes into account this uncertainty about the models themselves when making predictions about new data $\tilde{y}$: 
+
+\begin{equation}
+    P(\tilde{y}\mid Y) = \sum_{i=1}^N P(\tilde{y}\mid Y, \mathcal{M}_i) \cdot P(\mathcal{M}_i \mid Y) 
+\end{equation}
+
+where the weights, $P(\mathcal{M}_i\mid Y)$, are computed via the marginal likelihood:
+
+\begin{equation}
+    P(\mathcal{M}_i\mid Y) \propto P(Y\mid \mathcal{M}_i) = \int_{\theta_{\mathcal{M}}} P(Y\mid \theta_{\mathcal{M},i}) \cdot P(\theta_{\mathcal{M},i}) d\theta_{\mathcal{M}} 
+\end{equation}
+
+This, in turn, means that in classical BMA, models are interpreted as representing mutually exclusive hypotheses, including the `correct' (or `most correct') model.  In the long run, after collecting more and more data, all probability mass will be put on the best model. This clashes with the interpretation of an ensemble of climate models which all contribute to our understanding of the climate system and among which we do not believe to find a single `correct' model. Instead, climate models are considered to be inter-dependent imperfect representations of the climate system.
+Contrary to the `Ensemble Performance Weighting' approach that we have described, in the classical definition of BMA, the weights are posterior model weights, i.e.~they refer to individual models.
+
+\citet{rafteryUsingBayesianModel2005} extended the statistical definition of BMA to dynamical models, more precisely to ensembles of weather forecast models. They combine the probability densities of the models' forecasts into a mixture distribution via mixture weights that are computed with the Expectation-Maximization (EM) algorithm. The weights are interpreted as the respective forecast to be the best forecast in the ensemble. That is, the 
+objective in this 'BMA-approach' is to maximize the joint mixture distribution, however, assuming that each observation originates from one of the component distributions. That is, for every observation, a latent variable is assumed that specifies from which individual model it was generated. The computed weight vector thus summarizes how often each model is the best among all models in the ensemble, in explaining the observed data. 
+This contrasts the `Ensemble Performance Weighting' approach which is based on the assumption that a weighted average model generated the observed data and which computes a distribution over weight vectors, instead of estimating a single weight vector. 
+
+There are applications following the classical as well as the approach from \citet{rafteryUsingBayesianModel2005} to BMA in the context climate models \citep[e.g.,][]{zhuFutureProjectionsUncertainty2013,olsonSimpleMethodBayesian2016, fanBayesianPosteriorPredictive2017, zhuIntercomparisonMultimodelEnsembleprocessing2023}.
+
+
+%\begin{equation}
+ %   P(\tilde{y}\mid Y) = \sum_{i=1}^N w_i \cdot P(\tilde{y}\mid \mathcal{M}_i)
+%\end{equation}
+
+
+%Contrary to climate projections, weather forecasts work on very short timescales, thus
 
 \end{comment}
 
