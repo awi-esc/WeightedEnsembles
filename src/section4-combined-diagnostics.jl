@@ -59,7 +59,7 @@ begin
         title = "Diagnostic variable 1 \n (normalized tas anomalies)",
         xlabel = "observed", 
         ylabel = "predicted",
-        yticks = -4:1:1,
+        #yticks = -4:1:1,
         titlefont = :regular
     )
     Label(f1[1, 1, TopLeft()], "a"; fontsize = 12, font=:bold, padding = (10,0,0,0))
@@ -84,7 +84,7 @@ begin
         title = "Diagnostic variable 2 \n (normalized psl anomalies)",
         xlabel = "observed",
         titlefont = :regular,
-        yticks = -4:1:1
+        #yticks = -4:1:1
     )
     Label(f1[1, 2, TopLeft()], "b"; fontsize = 12, font=:bold, padding = (0,0,0,0))
 
