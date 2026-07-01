@@ -13,9 +13,11 @@ $m^v_{i}(s)$: predicted variable $v$ for model $i$ at index $s$ (e.g.~spatial lo
 
 $M_i = [m^{\textrm{tas}}_i, m^{\textrm{sst}}_i, \dots]$: set of considered predicted variables for model $i$
 
-$M = [M_1, M_2, \dots]$: superset of predictions from all models
+$M = [M_1, M_2, \dots, M_N]$: superset of predictions from all models
 
-$M_* = \sum_{i} M_i \cdot w_i$ where $\sum_i w_i = 1$: predictions of the weighted average model $\mathcal{M}_*$ 
+$M_* = \sum_{i=1}^{i=N} M_i \cdot w_i$ where $\sum_{i=1}^{i=N} w_i = 1$: predictions of the weighted average model $\mathcal{M}_*$ 
+
+$i=1\dots N$ where $N$ is the number of models in the ensemble
 
 \bigskip
 $\mathcal{Y}$: observational dataset as an instance/category (e.g.~ERA5)
