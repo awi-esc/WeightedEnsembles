@@ -131,7 +131,7 @@ if abspath(PROGRAM_FILE) != @__FILE__
     # Distribution of maximum weight values for different Dirichlet distributions
     dirAlpha(N, x) = fill(1/(x*N), N)
 
-    f1 = Figure(size=(800,300))
+    f1 = Figure(size=(450,300))
     N = 38
     titles = [
         latexstring("\\alpha = 1/(N); \\quad N=$N"), 
@@ -163,3 +163,25 @@ if abspath(PROGRAM_FILE) != @__FILE__
     axislegend(ax2)
     f2
 end
+
+mwp.savePlot(f1, joinpath(plot_dir, "dir-prior-max-weights.pdf"); overwrite=true)
+
+begin
+    n_samples = 1000
+    idx_model = 1
+
+    f3 = Figure(size=(600,300))
+    for (i,N) in enumerate([1, 3, 3*10])
+        alphas = fill(1/N, 3)
+        distr = Dirichlet(alphas) 
+        samples = rand(distr, n_samples)
+
+        title = latexstring("\\alpha_0 = 1/$N")
+        Makie.hist!(
+            Axis(f3[1,i], xlabel=latexstring("w_i"), title = title),
+            samples[idx_model,:]
+        )
+    end
+    f3
+end
+mwp.savePlot(f3, joinpath(plot_dir, "dir-prior-hists-w1.pdf"); overwrite = true)
