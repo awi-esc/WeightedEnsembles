@@ -39,7 +39,39 @@ Here we show examples of different weighting approaches that yield the same rank
 \end{enumerate}
 
 
+\section{Short background on statistical concepts used in the paper}\label{sec:appendix-bayesian-stats}
+
+%- Bayesian probabilities are considered subjective probabilities. This means that constru giving meaning to the probability of an hypothesis
+$H$ is a random variable; a specific hypothesis $h$ may for instance refer to the hypothesis that model $\mathcal{M}_i$ is `true'. $D$ is the observed data.
+
+\begin{description}
+    \item[Prior] $P(H=h)$ The modeler's \emph{prior} belief about hypothesis $h$ being true, e.g.~$P(\mathcal{M}_i)$: probability of model $\mathcal{M}_i$ being true, before observing any data.
+    \item[Likelihood] $P(D\mid H=h)$ The probability of observing data $D$ assuming hypothesis $h$ holds, e.g.~the probability of observing data $D$ assuming that it was generated under hypothesis $h$, for instance by model $\mathcal{M}_i$.
+    \item[Posterior] $P(H=h \mid D)$ The modeler's \emph{posterior} belief about a hypothesis $h$, i.e.~after having seen data $D$, e.g.~$P(\mathcal{M}_i\mid D)$.
+    \item[Baye's rule] Belief update based on new evidence $D$. \begin{equation}
+P(H=h\mid D) = \frac{P(D\mid H=h) \cdot P(H=h)}{P(D)}
+\end{equation}
+    \item[MCMC] Markov Chain Monte Carlo. A class of algorithms that is used to draw samples from probability distributions which are too complex to be solved analytically.
+    \item[Dirichlet distribution] Dir($\vec{\alpha}$). Continuous probability distribution parameterized by a vector $\vec{\alpha}$ of length $K$. Samples from  Dir($\vec{\alpha}$) are vectors $\vec{x}$ of length $K$ where $x_i \in [0,1]$ and $\sum_{i=1}^K x_i = 1$. When $\alpha_i$ is identical for all $i\in 1,\dots K$, the parameter $\vec{\alpha}$ can be replaced by the single scalar value, known as the concentration parameter. For illustration, Figure \ref{fig:dir-hists-w1} shows the distribution of the first element ($w_1$) in 1000 vectors of length 3 (representing an ensemble of 3 models) sampled from different Dirichlet distributions parameterized with concentration parameter $\alpha_0$ (the distributions for $w_1,w_2$ are similar). While for $\alpha_0=\frac{1}{3}$ (middle), values in the middle of the range are sampled, for $\alpha_0=\frac{1}{30}$, these become very few. Figure \ref{fig:dir-prior-max-weights} shows the maximal weight in each vector of length 38, sampled from Dirichlet($\alpha_0=\frac{1}{38}$) (left) and sampled from Dirichlet($\alpha_0=\frac{1}{380}$) (right). While for $\alpha_0=\frac{1}{38}$, the maximal weights are spread across the entire range of values, for $\alpha_0=\frac{1}{380}$ the maximal weight tends to be very high, i.e.~the sampled vectors are close to one-hot vectors, assigning nearly all weight to a single model.
+ 
+ \begin{figure}[H]
+    \centering
+    \includegraphics{sections/figures/dir-prior-hists-w1.pdf}
+    \caption{Histograms of the first element ($w_1$) in 1000 vectors (of length 3) sampled from a Dirichlet distribution parameterized with different values of $\alpha_0$.}
+    \label{fig:dir-hists-w1}
+ \end{figure}  
+ 
+  \begin{figure}[H]
+    \centering
+    \includegraphics{sections/figures/dir-prior-max-weights.pdf}
+    \caption{Histograms of the maximum element in each of 1000 vectors sampled from a Dirichlet distribution parameterized with $\alpha_0=\frac{1}{38}$ (left) and $\alpha_0 = \frac{1}{380}$ (right).}
+    \label{fig:dir-prior-max-weights}
+ \end{figure}   
+    
+\end{description}
+
 \begin{comment}
+
 \section{Bayesian Model Averaging}\label{sec:appendix-bma}
 In the introduction we mentioned that some papers have referred to what we call the ‘Ensemble performance weighting’ approach as ‘Bayesian Model Averaging’, short BMA. However, in the statistical literature, BMA has a different meaning that we believe is worth disentangling and setting in relation to the ensemble performance weighting approach that we have described here. In the classical sense, BMA applies Bayesian inference on the problem of model selection by taking into account the uncertainties about the models themselves instead of assuming one specific model \citep[for a review on BMA see][]{fragosoBayesianModelAveraging2018}. For a concrete statistical model $\mathcal{M}$ with certain parameters, summarized as $\theta_{\mathcal{M}}$, we have the following quantities:
 
@@ -77,11 +109,8 @@ There are applications following the classical as well as the approach from \cit
 %\begin{equation}
  %   P(\tilde{y}\mid Y) = \sum_{i=1}^N w_i \cdot P(\tilde{y}\mid \mathcal{M}_i)
 %\end{equation}
-
-
-%Contrary to climate projections, weather forecasts work on very short timescales, thus
-
 \end{comment}
+
 
 
 \noappendix       %% use this to mark the end of the appendix section. Otherwise the figures might be numbered incorrectly (e.g. 10 instead of 1).
@@ -101,4 +130,3 @@ There are applications following the classical as well as the approach from \cit
 \appendixtables   %% needs to be added in front of appendix tables
 
 %% Please add \clearpage between each table and/or figure. Further guidelines on figures and tables can be found below.
-
