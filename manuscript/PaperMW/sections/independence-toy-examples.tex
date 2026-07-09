@@ -1,35 +1,35 @@
 \section{Model dependence}\label{sec:dependence}
 
 We would like to use three schematic (toy) examples to illustrate how the possible lack of independence between ensemble members can influence the weights obtained when using individual or ensemble performance weighting. 
-In each case, we use an ensemble of two base models, $\mathcal{M}_1$ and $\mathcal{M}_2$, whose predictions are systematically constructed based on the 1980--2014 mean near-surface air temperature anomalies with respect to the global mean, obtained from ERA5 \citep{hersbachERA5GlobalReanalysis2020}. %for the climatology for the same time period.
+In each case, we use an ensemble of two base models, $\mathcal{M}_1$ and $\mathcal{M}_2$, whose output is systematically constructed based on the 1980--2014 mean near-surface air temperature anomalies with respect to the global mean, obtained from ERA5 \citep{hersbachERA5GlobalReanalysis2020}. %for the climatology for the same time period.
 
-In the first case, we assume that the first model ($\mathcal{M}_1$) makes perfect predictions in the Eastern Hemisphere, while in the Western Hemisphere, a random error sampled from $\mathcal{N}(0,2)$ is added to the field. For the second model ($\mathcal{M}_2$), the same random error is added in the Eastern Hemisphere, and perfect predictions are obtained in the West. In this way, we get two models with the exact same mean squared error (MSE) with respect to the observed data and we know that the weighting that would minimize the total combined error would be $w_1=w_2=0.5$. The data for this case are shown in Fig.~\ref{fig:independence-error-pattern}.\footnote{For better visualization, Fig.~\ref{fig:independence-error-pattern}--\ref{fig:independence-real-data} exclude the polar regions, but all data was used in the computations.}
+In the first case, we assume that the first model ($\mathcal{M}_1$) perfectly simulates the Eastern Hemisphere, while in the Western Hemisphere, a random error sampled from $\mathcal{N}(0,2)$ is added to the field. For the second model ($\mathcal{M}_2$), the same random error is added in the Eastern Hemisphere, while the Western hemisphere is perfectly simulated. In this way, we get two models with the exact same mean squared error (MSE) with respect to the observed data and we know that the weighting that would minimize the total combined error would be $w_1=w_2=0.5$. The data for this case are shown in Fig.~\ref{fig:independence-error-pattern}.\footnote{For better visualization, Fig.~\ref{fig:independence-error-pattern}--\ref{fig:independence-real-data} exclude the polar regions, but all data was used in the computations.}
 
 \begin{figure}
     \centering
     %\includegraphics{sections/figures/independence/data-error-pattern.pdf}
     \includegraphics{sections/figures/fig3.pdf}
-    \caption{Generated toy data with same error pattern for both models. (a) Observations, near-surface air temperature anomalies in the time between 1980 and 2014 with respect to the global mean value of this time period. (b) $M_1(s) = Y(s) + \mathcal{N}(0,2)$ where $s$ is a grid point in the Western hemisphere. For all $s$ in the Eastern hemisphere, the predictions of model 1 are identical to the observations. (c) Predictions of model 2, with identical errors as for model 1, yet in the Eastern hemisphere, while predictions in the Western hemisphere are perfect.}
+    \caption{Generated toy data with same error pattern for both models. (a) Observations, near-surface air temperature anomalies in the time between 1980 and 2014 with respect to the global mean value of this time period. (b) $M_1(s) = Y(s) + \mathcal{N}(0,2)$ where $s$ is a grid point in the Western hemisphere. For all $s$ in the Eastern hemisphere, the output of model 1 is identical to the observations. (c) Output of model 2, with identical errors as for model 1, yet in the Eastern hemisphere, while the Western hemisphere is identical to the observations.}
     \label{fig:independence-error-pattern}
 \end{figure}
 
-In the second case, we set the predictions for the two models everywhere to the observed data and independently add the noise to both models (again sampled from $\mathcal{N}(0,2)$). Therefore, in this example, the mean squared errors will be similar, but are very unlikely to cancel out at every grid point. The constructed data for this case are shown in Fig.~\ref{fig:independence-random-error}.
+In the second case, we set the output of the two models everywhere to the observed data and independently add the noise to both models (again sampled from $\mathcal{N}(0,2)$). Therefore, in this example, the mean squared errors will be similar, but are very unlikely to cancel out at every grid point. The constructed data for this case are shown in Fig.~\ref{fig:independence-random-error}.
 
 \begin{figure}
     \centering
     %\includegraphics{sections/figures/independence/data-random-err.pdf}
     \includegraphics{sections/figures/fig4.pdf}
-    \caption{Generated toy data with independent noise per model. (a) Observations, near-surface air temperature anomalies in the time between 1980 and 2014 with respect to the global mean value of this time period. (b) $M_1(s) = Y(s) + \mathcal{N}(0,2)$. (c) Predictions of model 2, analogous to model $\mathcal{M}_1$, but with independently sampled noise.}
+    \caption{Generated toy data with independent noise per model. (a) Observations, near-surface air temperature anomalies in the time between 1980 and 2014 with respect to the global mean value of this time period. (b) $M_1(s) = Y(s) + \mathcal{N}(0,2)$. (c) Output of model 2, analogous to model $\mathcal{M}_1$, but with independently sampled noise.}
     \label{fig:independence-random-error}
 \end{figure}
 
-In the third example, we do not construct data, but use the predictions for the same variable and diagnostic from two real models, namely from AWI-CM-1-1-MR and CESM2-WACCM. These data are shown in Fig.~\ref{fig:independence-real-data}.
+In the third example, we do not construct data, but use the output for the same variable and diagnostic from two real models, namely from AWI-CM-1-1-MR and CESM2-WACCM. These data are shown in Fig.~\ref{fig:independence-real-data}.
 
 \begin{figure}
     \centering
     %\includegraphics{sections/figures/independence/data-real-models.pdf}
     \includegraphics{sections/figures/fig4.pdf}
-    \caption{Observations of near-surface air temperature anomalies in the time between 1980 and 2014 with respect to the global mean value of this time period (a) and corresponding predictions of two real models, AWI-CM-1-1-MR (b) and CESM2-WACCM (c).}
+    \caption{Observations of near-surface air temperature anomalies in the time between 1980 and 2014 with respect to the global mean value of this time period (a) and corresponding output of two real models, AWI-CM-1-1-MR (b) and CESM2-WACCM (c).}
     \label{fig:independence-real-data}
 \end{figure}
 
@@ -39,7 +39,7 @@ In each of the three toy examples described above, we build ensembles of differe
     \centering
     %\includegraphics{sections/figures/independence/independence-copies-mse-gaussian-dirichlet-1-over-n.pdf}
     \includegraphics{sections/figures/fig6.pdf}
-    \caption{Model weights for models in an ensemble consisting of model $\mathcal{M}_1$ and $n_2$ copies of model $\mathcal{M}_2$. Panels a-c show the computed weights in the individual performance weighting approach, panels d-f show the mean posterior weights in the ensemble performance weighting approach. Columns refer to the three different toy examples. Toy example 1 (a+d): $\mathcal{M}_1$ and $\mathcal{M}_2$ predict one half of the data perfectly and show the same bias ($\mathcal{N}(0,2)$) in the other half. Toy example 2 (b+e): Model predictions are constructed from the observed data plus some random noise everywhere: $m_i = y + \epsilon$ where $\epsilon \sim \mathcal{N}(0, 2)$. Toy example 3 (c+f): $\mathcal{M}_1$ and $\mathcal{M}_2$ correspond to AWI-CM-1-1-MR and CESM2-WACCM. The two values in brackets in the titles are the mean squared errors for models $\mathcal{M}_1$ and $\mathcal{M}_2$ in the respective example.}
+    \caption{Model weights for models in an ensemble consisting of model $\mathcal{M}_1$ and $n_2$ copies of model $\mathcal{M}_2$. Panels a-c show the computed weights in the individual performance weighting approach, panels d-f show the mean posterior weights in the ensemble performance weighting approach. Columns refer to the three different toy examples. Toy example 1 (a+d): $\mathcal{M}_1$ and $\mathcal{M}_2$ predict one half of the data perfectly and show the same bias ($\mathcal{N}(0,2)$) in the other half. Toy example 2 (b+e): Model outputs are constructed from the observed data plus some random noise everywhere: $m_i = y + \epsilon$ where $\epsilon \sim \mathcal{N}(0, 2)$. Toy example 3 (c+f): $\mathcal{M}_1$ and $\mathcal{M}_2$ correspond to AWI-CM-1-1-MR and CESM2-WACCM. The two values in brackets in the titles are the mean squared errors for models $\mathcal{M}_1$ and $\mathcal{M}_2$ in the respective example.}
     \label{fig:toy-examples-results}
 \end{figure}
 

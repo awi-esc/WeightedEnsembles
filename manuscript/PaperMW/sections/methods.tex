@@ -2,20 +2,20 @@
 
 In the following we will provide definitions for the two general approaches for computing model weights, the individual and the performance weighting approach, and specify the terminology that we use throughout the paper. 
 This is summarized in Box \ref{box:terminology}.
-Note that generally, lowercase letters refer to predictions/observations for a specific climate variable, while uppercase letters refer to collections, e.g., of different variables or models.
+Note that generally, lowercase letters refer to model output/observations for a specific climate variable, while uppercase letters refer to collections, e.g., of different variables or models.
 An exception are uppercase calligraphic letters, $\mathcal{M}_i$ and $\mathcal{Y}$, which we use to refer to a model $i$ or an observational dataset as a category.
 %Sometimes, we want to refer to different sets of climate variables, which we denote by a set $j$.
 
 \begin{definitionbox}[Terminology]\label{box:terminology}
 $\mathcal{M}_i$: model $i$ as an instance/category, e.g.~AWI-ESM 
 
-$m^v_{i}(s)$: predicted variable $v$ for model $i$ at index $s$ (e.g.~spatial location, time point)
+$m^v_{i}(s)$: output for variable $v$ from model $i$ at index $s$ (e.g.~spatial location, time point)
 
-$M_i = [m^{\textrm{tas}}_i, m^{\textrm{sst}}_i, \dots]$: set of considered predicted variables for model $i$
+$M_i = [m^{\textrm{tas}}_i, m^{\textrm{sst}}_i, \dots]$: set of model output from model $i$ for considered variables
 
-$M = [M_1, M_2, \dots, M_N]$: superset of predictions from all models
+$M = [M_1, M_2, \dots, M_N]$: superset of model outputs from all models
 
-$M_* = \sum_{i=1}^{i=N} M_i \cdot w_i$ where $\sum_{i=1}^{i=N} w_i = 1$: predictions of the weighted average model $\mathcal{M}_*$ 
+$M_* = \sum_{i=1}^{i=N} M_i \cdot w_i$ where $\sum_{i=1}^{i=N} w_i = 1$: output of the weighted average model $\mathcal{M}_*$ 
 
 $i=1\dots N$ where $N$ is the number of models in the ensemble
 
@@ -31,14 +31,14 @@ $Y = [y^{\textrm{tas}}, y^{\textrm{sst}}, \dots]$: set of considered observed va
 \paragraph*{Individual Performance Weighting}
 
 With the individual performance weighting approach, a weight vector is defined such that each weight represents the plausibility of the respective model in light of the observed data $Y$.
-In this approach, the weight assigned to a model $\mathcal{M}_i$ is proportional to the product of the likelihood of the observed data $Y$ under model $\mathcal{M}_i$, i.e. given its predictions, $M_i$, and the prior over models, $P(\mathcal{M}_i)$.
+In this approach, the weight assigned to a model $\mathcal{M}_i$ is proportional to the product of the likelihood of the observed data $Y$ under model $\mathcal{M}_i$, i.e. given its output, $M_i$, and the prior over models, $P(\mathcal{M}_i)$.
 %
 \begin{align}
     &\label{eq:wi-individual-weighting}  w_i \propto P(Y\mid M_i) \cdot P(\mathcal{M}_i)
 \end{align}
 %
 When each model is \emph{a priori} considered equally likely, the resulting weight vector is only influenced by the likelihood, and the prior can thus be omitted. This simplifies Eq.~\eqref{eq:wi-individual-weighting} into $w_i \propto P(Y\mid M_i)$.
-Note the difference between the model as a category, $\mathcal{M}_i$ and its predictions $M_i$, where the former implies the latter: once we decide for a model (e.g.~AWI-ESM), we can look up its predictions. Therefore, for completeness, we note that Eq.~\eqref{eq:wi-individual-weighting} can be spelled out explicitly as 
+Note the difference between the model as a category, $\mathcal{M}_i$ and its output $M_i$, where the former implies the latter: once we decide for a model (e.g.~AWI-ESM), we can look up its output. Therefore, for completeness, we note that Eq.~\eqref{eq:wi-individual-weighting} can be spelled out explicitly as 
 %
 \begin{align}
     &  w_i = P(\mathcal{M}_i \mid Y, M_i) \propto P(Y\mid \mathcal{M}_i, M_i) \cdot P(M_i\mid \mathcal{M}_i)  \cdot P(\mathcal{M}_i) =  P(Y\mid M_i) \cdot 1 \cdot P(\mathcal{M}_i)
@@ -53,13 +53,13 @@ Thus, performance is not considered for individual models, but for the ensemble 
     & \label{eq:w-ensemble-weighting} P(\mathbf{w}\mid Y, M) \propto P(Y\mid M, \mathbf{w}) \cdot P(\mathbf{w}) = P(Y\mid M_*) \cdot P(\mathbf{w})
 \end{align}
 %
-For a weight vector $\mathbf{w}$, the predictions of the weighted average model $\mathcal{M}_*$ for a variable $v$ are given by
+For a weight vector $\mathbf{w}$, the output of the weighted average model $\mathcal{M}_*$ for a variable $v$ is given by
 %
 \begin{align}
     & \label{eq:weighted-avg-model}
     m^v_* = \sum_{i=1}^N w_i \cdot m^v_i
 \end{align}
-Thus, the log likelihood of the observed data under model $\mathcal{M}_*$, i.e. given its predictions, $M_*$, is computed as
+Thus, the log likelihood of the observed data under model $\mathcal{M}_*$, i.e. given its output, $M_*$, is computed as
 %
 \begin{align}
     & \label{eq:logl-m*} \log P(Y\mid M_*) = \sum_v \log P(y^v\mid m_*^v)
@@ -68,7 +68,7 @@ Thus, the log likelihood of the observed data under model $\mathcal{M}_*$, i.e. 
 To find the weight vector associated with the maximum likelihood, stochastic sampling methods can be used.
 For example, using Markov Chain Monte Carlo (MCMC) sampling, we can approximate the posterior distribution over weights $\mathbf{w}$ (Eq.~\eqref{eq:w-ensemble-weighting}).
 This has the advantage that uncertainties around the weights are incorporated and can thus be naturally propagated.
-Therefore, instead of assuming a single weight vector when computing predictions (e.g., future climate projections), this approach allows us to compute a posterior predictive distribution that accounts for our uncertainty in the weights.
+Therefore, instead of assuming a single weight vector when computing model output (e.g., future climate projections), this approach allows us to compute a posterior predictive distribution that accounts for our uncertainty in the weights.
 If we want to summarize the posterior distribution over weights, we may compute the mean or the maximum-a-posteriori (MAP) weight vector.
 For unimodal and symmetrical distributions these two values should be nearly identical. 
 
@@ -111,11 +111,11 @@ Therefore, the Dirichlet distribution allows us to easily incorporate potential 
 \label{fig:priors}
 \end{figure}
 
-Especially in cases where we only have few or not very informative data, the choice of the prior needs careful consideration as, in that case, the posterior predictions will be more influenced by the prior. 
+Especially in cases where we only have few or not very informative data, the choice of the prior needs careful consideration as, in that case, the posterior will be more influenced by the prior. 
 Figure \ref{fig:priors}b shows how the choice of the prior distribution over the weight vectors influences the data that is considered in the first place by the weighted average models. Here, we generated arbitrary data for 38 models (grey stars) by drawing from a Normal Distribution with $\mu=3, \sigma=1$ (black curve) to represent an ensemble of opportunity. 
 The three colored densities show the distribution of the weighted averages under Dirichlet priors (over $\mathbf{w}$) with varying concentration parameter $\alpha$. In all three cases, the expected value for each $w_i$ equals $\frac{1}{N}$, reflecting that we do not have any prior knowledge about the models' weights. 
 When $\alpha=1$ (green density), all weight vectors that we consider through the prior distribution assign approximately equal probability to all $w_i$, so that we are naturally restricted to weighted averages that sit tightly around the multi-model mean.
-When $\alpha$ is extremely small (purple density where $\alpha=\frac{1}{500}$), the considered ``weighted'' averages effectively correspond to the predictions of individual models as the prior distribution generates vectors that approach one-hot vectors (where $\alpha_j=1$, $\alpha_i=0 \quad \forall i\neq j$).
+When $\alpha$ is extremely small (purple density where $\alpha=\frac{1}{500}$), the considered ``weighted'' averages effectively correspond to the output of individual models as the prior distribution generates vectors that approach one-hot vectors (where $\alpha_j=1$, $\alpha_i=0 \quad \forall i\neq j$).
 Setting $\alpha = \frac{1}{N}$ (orange density) turns out to be a reasonable choice in that the weight vectors drawn from this prior distribution allow us to cover a large part of the spread of the model ensemble.
 %while the expected value of each $w_i$ remains at a reasonable value of $\frac{1}{N}$,  
 This is due to the variance of the Dirichlet distribution, with scalar concentration parameter $\alpha$, defined as $var(\mathbf{w}_i)=\lambda \cdot \frac{1}{N \cdot \alpha + 1}$ where $\lambda=\frac{N-1}{N^2}$, i.e.~$\lambda$ does not depend on $\alpha$.
@@ -127,7 +127,7 @@ In summary, in the individual performance weighting approach, a uniform prior ov
 \section{Measuring performance}\label{sec:likelihoods}
 
 The choice of how to evaluate model performance lies at the heart of every method to compute weights for models in an ensemble.
-For data on a spatial grid, an example for a performance metric $f$ is the inverse mean squared error between model predictions and observed data:
+For data on a spatial grid, an example for a performance metric $f$ is the inverse mean squared error between model output and observed data:
 %
 \begin{equation}
 	f(m_i^v,y^v) = \frac{1}{\sum_{s} w_s \cdot (m^v_i(s) - y^v(s))^2}
@@ -142,7 +142,7 @@ In the individual performance weighting approach, the weight for model $i$ is th
 \end{equation}
 This approach was, for instance, used by \citet{sierraInformationtheoreticApproachObtain2025}. %\bg{add references} 
 To formulate the weighting in a Bayesian framework, we need to define a proper generative likelihood function instead of relying on a heuristic performance metric. 
-The likelihood relates model predictions to the observed data in a probabilistic way and allows us to incorporate uncertainties that are not accounted for when using a heuristic performance metric.
+The likelihood relates model output to the observed data in a probabilistic way and allows us to incorporate uncertainties that are not accounted for when using a heuristic performance metric.
 A possible choice for the likelihood is to assume independent and identically distributed (i.i.d.) Gaussian errors so that
 %
 \begin{align}
@@ -169,7 +169,7 @@ In general, it is also possible to sample $\sigma^2$, which would make the tunin
 \begin{equation}
     P(\mathbf{w}, \sigma^2\mid M) \propto \mathcal{L}(y \mid \mu=m_*^v, \sigma^2) \cdot P(\mathbf{w}) \cdot P(\sigma^2)
 \end{equation}
-where $m_*^v$ are the predictions for variable $v$ of the weighted average model using weight vector $\vec{w}$.
+where $m_*^v$ is the output for variable $v$ of the weighted average model using weight vector $\vec{w}$.
 %
 Setting $\sigma^2$ to a fixed value in the ensemble weighting approach is also an option.  \citet{massoudBayesianModelAveraging2020}, for instance, use the following log likelihood function: $-\frac{1}{2} \sum_{s} (Y(s) - M_i(s))^2$, where $s$ iterates over all grid cells\footnote{\citet{massoudBayesianModelAveraging2020} refer to this function (their Eq.~(4)) as the likelihood, but it seems that the log likelihood is intended.}, which is equivalent to assuming Normal Gaussian errors centered around 0 with variance $\sigma^2=1$.
 
@@ -189,7 +189,7 @@ The toy model data were constructed so that for diagnostic 1, $\mathcal{M}_1$ is
 In this way, $\mathcal{M}_1$ is objectively the better model and thus, when both diagnostics are taken into account at the same time, we expect $\mathcal{M}_1$ to receive larger weights on average than $\mathcal{M}_2$.
 Nonetheless, as $\mathcal{M}_2$ performs better for diagnostic 2 than $\mathcal{M}_1$, it should still payoff to include $\mathcal{M}_2$ to some extent in a weighted average than relying only on $\mathcal{M}_1$ alone.
 
-To compute the posterior distributions over weight vectors, we use a Dirichlet prior parameterized with $\vec{\alpha} = [\frac{1}{2}, \frac{1}{2}]$ and a multivariate Gaussian likelihood with the model predictions as mean vector and variances $\sigma_{d_1}^2, \sigma_{d_2}^2$ for diagnostic 1 and 2 respectively that we sample jointly with the weights. Note that the values for the variances are not reported further, as they are not relevant to the result. 
+To compute the posterior distributions over weight vectors, we use a Dirichlet prior parameterized with $\vec{\alpha} = [\frac{1}{2}, \frac{1}{2}]$ and a multivariate Gaussian likelihood with the models' outputs as mean vector and variances $\sigma_{d_1}^2, \sigma_{d_2}^2$ for diagnostic 1 and 2 respectively that we sample jointly with the weights. Note that the values for the variances are not reported further, as they are not relevant to the result. 
 The results summarized in Table \ref{tab:toy-example-diagnostics-rmses} confirm our expectations: when both diagnostics are jointly used, the mean weight vector is $\left<\bar{w}_1=0.79, \bar{w}_2=0.21\right>$, giving more weight to model $\mathcal{M}_1$ than to model $\mathcal{M}_2$. 
 Also, the summed RMSE for the corresponding weighted average model is smaller (0.21) than it is when using the first model alone (0.24) because of the reduced RMSE for diagnostic 2 (0.11 vs. 0.14) that results from giving some weight also to model $\mathcal{M}_2$.
 

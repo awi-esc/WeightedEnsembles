@@ -4,7 +4,7 @@
 
 \section{Influence of prior on weighted projections}
 
-Figure \ref{fig:appendix-projections-mmm-bma} shows the influence of using a prior distribution over weight vectors in the ensemble performance weighting approach that strongly restricts the considered data. Here, we use a Dirichlet prior with concentration parameter $\alpha=1$ that yields weight vectors with roughly equal weights assigned to every model. This strongly restricts the predictions of the weighted average models that are considered \emph{a priori} as shown in Fig.~\ref{fig:expected-ecs-dirichlet}b in the main text. This, in turn, is reflected in Fig.~\ref{fig:appendix-projections-mmm-bma} where the shown inner 90\% uncertainty range for the projected increase in global mean temperature is nearly identical when using the prior weight vectors as compared to using the posterior weight vectors. Therefore, this extremely narrow range is not due to the data: we get almost the same uncertainty range simply by using the chosen prior weights without any consideration of the likelihood function.
+Figure \ref{fig:appendix-projections-mmm-bma} shows the influence of using a prior distribution over weight vectors in the ensemble performance weighting approach that strongly restricts the considered data. Here, we use a Dirichlet prior with concentration parameter $\alpha=1$ that yields weight vectors with roughly equal weights assigned to every model. This strongly restricts the output of the weighted average models that are considered \emph{a priori} as shown in Fig.~\ref{fig:expected-ecs-dirichlet}b in the main text. This, in turn, is reflected in Fig.~\ref{fig:appendix-projections-mmm-bma} where the shown inner 90\% uncertainty range for the projected increase in global mean temperature is nearly identical when using the prior weight vectors as compared to using the posterior weight vectors. Therefore, this extremely narrow range is not due to the data: we get almost the same uncertainty range simply by using the chosen prior weights without any consideration of the likelihood function.
 
 \begin{figure}[H]
     \centering
@@ -52,19 +52,19 @@ $H$ is a random variable; a specific hypothesis $h$ may for instance refer to th
 P(H=h\mid D) = \frac{P(D\mid H=h) \cdot P(H=h)}{P(D)}
 \end{equation}
     \item[MCMC] Markov Chain Monte Carlo. A class of algorithms that is used to draw samples from probability distributions which are too complex to be solved analytically.
-    \item[Dirichlet distribution] Dir($\vec{\alpha}$). Continuous probability distribution parameterized by a vector $\vec{\alpha}$ of length $K$. Samples from  Dir($\vec{\alpha}$) are vectors $\vec{x}$ of length $K$ where $x_i \in [0,1]$ and $\sum_{i=1}^K x_i = 1$. When $\alpha_i$ is identical for all $i\in 1,\dots K$, the parameter $\vec{\alpha}$ can be replaced by the single scalar value, known as the concentration parameter. For illustration, Figure \ref{fig:dir-hists-w1} shows the distribution of the first element ($w_1$) in 1000 vectors of length 3 (representing an ensemble of 3 models) sampled from different Dirichlet distributions parameterized with concentration parameter $\alpha_0$ (the distributions for $w_1,w_2$ are similar). While for $\alpha_0=\frac{1}{3}$ (middle), values in the middle of the range are sampled, for $\alpha_0=\frac{1}{30}$, these become very few. Figure \ref{fig:dir-prior-max-weights} shows the maximal weight in each vector of length 38, sampled from Dirichlet($\alpha_0=\frac{1}{38}$) (left) and sampled from Dirichlet($\alpha_0=\frac{1}{380}$) (right). While for $\alpha_0=\frac{1}{38}$, the maximal weights are spread across the entire range of values, for $\alpha_0=\frac{1}{380}$ the maximal weight tends to be very high, i.e.~the sampled vectors are close to one-hot vectors, assigning nearly all weight to a single model.
+    \item[Dirichlet distribution] Dir($\vec{\alpha}$). Continuous probability distribution parameterized by a vector $\vec{\alpha}$ of length $K$. Samples from  Dir($\vec{\alpha}$) are vectors $\vec{x}$ of length $K$ where $x_i \in [0,1]$ and $\sum_{i=1}^K x_i = 1$. When $\alpha_i$ is identical for all $i\in 1,\dots K$, the parameter $\vec{\alpha}$ can be replaced by the single scalar $\alpha$, the concentration parameter. For illustration, Figure \ref{fig:dir-hists-w1} shows the distribution of the first element ($w_1$) in 1000 vectors of length 3 (representing an ensemble of 3 models) sampled from different Dirichlet distributions parameterized with concentration parameter $\alpha$ (the distributions for $w_1,w_2$ are similar). While for $\alpha=\frac{1}{3}$ (middle), values in the middle of the range are sampled, for $\alpha=\frac{1}{30}$, these become very few. Figure \ref{fig:dir-prior-max-weights} shows the maximal weight in each vector of length 38, sampled from Dirichlet($\alpha=\frac{1}{38}$) (left) and sampled from Dirichlet($\alpha=\frac{1}{380}$) (right). While for $\alpha=\frac{1}{38}$, the maximal weights are spread across the entire range of values, for $\alpha=\frac{1}{380}$ the maximal weight tends to be very high, i.e.~the sampled vectors are close to one-hot vectors, assigning nearly all weight to a single model.
  
  \begin{figure}[H]
     \centering
     \includegraphics{sections/figures/dir-prior-hists-w1.pdf}
-    \caption{Histograms of the first element ($w_1$) in 1000 vectors (of length 3) sampled from a Dirichlet distribution parameterized with different values of $\alpha_0$.}
+    \caption{Histograms of the first element ($w_1$) in 1000 vectors (of length 3) sampled from a Dirichlet distribution parameterized with different values of the concentration parameter $\alpha$.}
     \label{fig:dir-hists-w1}
  \end{figure}  
  
   \begin{figure}[H]
     \centering
     \includegraphics{sections/figures/dir-prior-max-weights.pdf}
-    \caption{Histograms of the maximum element in each of 1000 vectors sampled from a Dirichlet distribution parameterized with $\alpha_0=\frac{1}{38}$ (left) and $\alpha_0 = \frac{1}{380}$ (right).}
+    \caption{Histograms of the maximum element in each of 1000 vectors sampled from a Dirichlet distribution parameterized with $\alpha=\frac{1}{38}$ (left) and $\alpha = \frac{1}{380}$ (right).}
     \label{fig:dir-prior-max-weights}
  \end{figure}   
     
