@@ -1,8 +1,10 @@
 using CairoMakie
 
-data_dir = "./data"
-target_data_dir = "./output/data"
-plot_dir = "./output/plots"
+const ROOT = normpath(joinpath(@__DIR__, ".."));
+
+data_dir = joinpath(ROOT, "data");
+target_data_dir = joinpath(ROOT, "output", "data");
+plot_dir = joinpath(ROOT, "output", "plots");
 
 Makie.set_theme!(fontsize = 10);
 COLORS_MODELS = [
