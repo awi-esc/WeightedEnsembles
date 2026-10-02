@@ -1,0 +1,23 @@
+.DS_Store
+
+# Latex files
+*.aux
+*.bbl
+*.glo
+*.glsdefs
+*.synctex.gz
+*.blg
+*.ist
+
+manuscript/PaperMW/**/*.log
+manuscript/PaperMW/main_flat.tex
+manuscript/ModelWeightsReviewProcess.pdf
+
+
+manuscript/diffs-revision1/*
+
+# Temporary output files
+/output2/
+/data2/
+
+*.zip
