@@ -8,6 +8,8 @@ using Random
 include("config.jl")
 include("functions-model-dependence.jl")
 
+target_data_dir_sec5 = joinpath(target_data_dir, "weights-toy-examples-section-5")
+
 # ---------------------------- Load data ------------------------------------------------- #
 diagnostics = ["tas_ANOM", "psl_ANOM"]
 
@@ -66,64 +68,91 @@ f3 = plotToyData(
     yticks = yticks,
     fig_size = fig_size
 )
-mwp.savePlot(f1, joinpath(plot_dir, "fig3.pdf"))
-mwp.savePlot(f2, joinpath(plot_dir, "fig4.pdf"))
-mwp.savePlot(f3, joinpath(plot_dir, "fig5.pdf"))
+mwp.savePlot(f1, joinpath(plot_dir, "fig3.pdf"); overwrite=true)
+mwp.savePlot(f2, joinpath(plot_dir, "fig4.pdf"); overwrite=true)
+mwp.savePlot(f3, joinpath(plot_dir, "fig5.pdf"); overwrite=true)
 
 # ----------------------------- Sample the data -------------------------------------------#
-n_reps_model2 = [1, 2, 4, 6, 8, 10];
-model_epw = epwGaussian
+epw_err_exists = isfile(joinpath(target_data_dir_sec5, "ensemble-weighting-error-pattern.nc"));
+epw_rnd_exists = isfile(joinpath(target_data_dir_sec5, "ensemble-weighting-error-random.nc"));
+epw_real_exists = isfile(joinpath(target_data_dir_sec5, "ensemble-weighting-real-data.nc"));
 
-aw_mat = mwd.areaWeightMatrix(latitudes, Bool.(fill(false, s[1], s[2])))
-# To use prior 1/x*n with different x, just change the x= part in the argument!)
-vargs = ["prior 1/(x*n), x=1", aw_mat]
-# To use Dirichlet(1), skip the prior argument:
-# vargs = [aw_mat]
+ipw_err_exists = isfile(joinpath(target_data_dir_sec5, "individual-weighting-error-pattern.nc"));
+ipw_rnd_exists = isfile(joinpath(target_data_dir_sec5, "individual-weighting-error-random.nc"));
+ipw_real_exists = isfile(joinpath(target_data_dir_sec5, "individual-weighting-real-data.nc"));
 
-likelihood_fn = likelihoodSSE
-begin
-    observations = vec(Array(obs))
-    # error pattern
-    mean_weights_pattern, posterior_samples = weightsRepModelMCMC(
-        data_pattern, observations, n_reps_model2, model_epw, vargs...
-    )
-    w_epw_pattern = getWeightsForPlot(mean_weights_pattern, 2, n_reps_model2, ["m1", "m2"])
-    # random errors
-    mean_weights_rnd, _ = weightsRepModelMCMC(
-        data_rnd, observations, n_reps_model2, model_epw, vargs...
-    )
-    w_epw_rnd = getWeightsForPlot(mean_weights_rnd, 2, n_reps_model2, ["m1", "m2"])
-    # real model data
-    mean_weights_real, _ = weightsRepModelMCMC(
-        data_real, observations, n_reps_model2, model_epw, vargs...
-    )
-    w_epw_real = getWeightsForPlot(mean_weights_real, 2, n_reps_model2, real_models)
+if(!epw_err_exists || !epw_rnd_exists || !epw_real_exists || !ipw_err_exists || !ipw_rnd_exists || !ipw_real_exists)
 
+    n_reps_model2 = [1, 2, 4, 6, 8, 10];
+    model_epw = epwGaussian
+
+    aw_mat = mwd.areaWeightMatrix(latitudes, Bool.(fill(false, s[1], s[2])))
+    # To use prior 1/x*n with different x, just change the x= part in the argument!)
+    vargs = ["prior 1/(x*n), x=1", aw_mat]
+    # To use Dirichlet(1), skip the prior argument:
+    # vargs = [aw_mat]
+
+    likelihood_fn = likelihoodSSE
+    begin
+        observations = vec(Array(obs))
+        # error pattern
+        mean_weights_pattern, posterior_samples = weightsRepModelMCMC(
+            data_pattern, observations, n_reps_model2, model_epw, vargs...
+        )
+        w_epw_pattern = getWeightsForPlot(mean_weights_pattern, 2, n_reps_model2, ["m1", "m2"])
+        # random errors
+        mean_weights_rnd, _ = weightsRepModelMCMC(
+            data_rnd, observations, n_reps_model2, model_epw, vargs...
+        )
+        w_epw_rnd = getWeightsForPlot(mean_weights_rnd, 2, n_reps_model2, ["m1", "m2"])
+        # real model data
+        mean_weights_real, _ = weightsRepModelMCMC(
+            data_real, observations, n_reps_model2, model_epw, vargs...
+        )
+        w_epw_real = getWeightsForPlot(mean_weights_real, 2, n_reps_model2, real_models)
+
+        weights_epw = [w_epw_pattern, w_epw_rnd, w_epw_real]
+    end
+    begin
+        # Add comparison to weights based relative to sum of squared errors   
+        w_pattern = getWeightsForPlot(
+            weightsRepModel(data_pattern, obs, n_reps_model2, likelihood_fn, latitudes), 2, n_reps_model2, ["m1", "m2"]
+        )
+        w_rnd = getWeightsForPlot(
+            weightsRepModel(data_rnd, obs, n_reps_model2, likelihood_fn, latitudes), 2, n_reps_model2, ["m1", "m2"]
+        )
+        w_real = getWeightsForPlot(
+            weightsRepModel(data_real, obs, n_reps_model2, likelihood_fn, latitudes), 2, n_reps_model2, real_models
+        )
+        weights_ipw = [w_pattern, w_rnd, w_real]
+    end
+
+    # ----------------------------- Save data to publish ------------------------------------- #
+    savecube_safe(weights_epw[1], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-error-pattern.nc"); driver=:netcdf, layername="weight", overwrite = true)
+    savecube_safe(weights_epw[2], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-error-random.nc"); driver=:netcdf, layername="weight", overwrite = true)
+    savecube_safe(weights_epw[3], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-real-data.nc"); driver=:netcdf, layername="weight", overwrite = true)
+
+    savecube_safe(weights_ipw[1], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-error-pattern.nc"); driver=:netcdf, layername="weight", overwrite = true)
+    savecube_safe(weights_ipw[2], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-error-random.nc"); driver=:netcdf, layername="weight", overwrite = true)
+    savecube_safe(weights_ipw[3], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-real-data.nc"); driver=:netcdf, layername="weight", overwrite = true)
+
+else
+    @info "Weights for toy examples in Section 5 already exist. Skipping computation and loading data from files..."
+
+    w_epw_pattern = open_dataset(joinpath(target_data_dir_sec5, "ensemble-weighting-error-pattern.nc"))["weight"]
+    w_epw_rnd = open_dataset(joinpath(target_data_dir_sec5, "ensemble-weighting-error-random.nc"))["weight"]
+    w_epw_real = open_dataset(joinpath(target_data_dir_sec5, "ensemble-weighting-real-data.nc"))["weight"]
+    
     weights_epw = [w_epw_pattern, w_epw_rnd, w_epw_real]
+
+    w_ipw_pattern = open_dataset(joinpath(target_data_dir_sec5, "individual-weighting-error-pattern.nc"))["weight"]
+    w_ipw_rnd = open_dataset(joinpath(target_data_dir_sec5, "individual-weighting-error-random.nc"))["weight"]
+    w_ipw_real = open_dataset(joinpath(target_data_dir_sec5, "individual-weighting-real-data.nc"))["weight"]
+    
+    weights_ipw = [w_ipw_pattern, w_ipw_rnd, w_ipw_real]
+
+    n_reps_model2 = collect(DimensionalData.lookup(w_epw_pattern, :nb_rep)) # same for all
 end
-begin
-    # Add comparison to weights based relative to sum of squared errors   
-    w_pattern = getWeightsForPlot(
-        weightsRepModel(data_pattern, obs, n_reps_model2, likelihood_fn, latitudes), 2, n_reps_model2, ["m1", "m2"]
-    )
-    w_rnd = getWeightsForPlot(
-        weightsRepModel(data_rnd, obs, n_reps_model2, likelihood_fn, latitudes), 2, n_reps_model2, ["m1", "m2"]
-    )
-    w_real = getWeightsForPlot(
-        weightsRepModel(data_real, obs, n_reps_model2, likelihood_fn, latitudes), 2, n_reps_model2, real_models
-    )
-    weights_ipw = [w_pattern, w_rnd, w_real]
-end
-
-# ----------------------------- Save data to publish ------------------------------------- #
-savecube_safe(weights_epw[1], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-error-pattern.nc"); driver=:netcdf, layername="weight")
-savecube_safe(weights_epw[2], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-error-random.nc"); driver=:netcdf, layername="weight")
-savecube_safe(weights_epw[3], joinpath(target_data_dir, "weights-toy-examples-section-5", "ensemble-weighting-real-data.nc"); driver=:netcdf, layername="weight")
-
-
-savecube_safe(weights_ipw[1], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-error-pattern.nc"); driver=:netcdf, layername="weight")
-savecube_safe(weights_ipw[2], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-error-random.nc"); driver=:netcdf, layername="weight")
-savecube_safe(weights_ipw[3], joinpath(target_data_dir, "weights-toy-examples-section-5", "individual-weighting-real-data.nc"); driver=:netcdf, layername="weight")
 
 
 # ----------------------------------- Figure 6 ------------------------------------------- #
@@ -188,7 +217,7 @@ begin
     rowsize!(f.layout, 3, Relative(0.05))
     f
 end
-mwp.savePlot(f, joinpath(plot_dir, "fig6.pdf"))
+mwp.savePlot(f, joinpath(plot_dir, "fig6.pdf"); overwrite=true)
 
 # -------------------- Figure 7: 2 copies of model2 -------------------------------------  #
 data_rep = mwd.repeatModel(data_real, 2; index=2)
