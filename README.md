@@ -1,6 +1,6 @@
 # WeightedEnsembles
 
-This repository contains all code for our paper **On combining climate models into weighted ensembles** ([see manuscript](manuscript/submission-on-combining-climate-models-into-weighted-ensembles.pdf)).
+This repository contains all code for our paper **On combining climate models into weighted ensembles** ([see manuscript](manuscript/final-version-on-combining-climate-models-into-weighted-ensembles.pdf)).
 
 ## Data
 
