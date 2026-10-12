@@ -26,7 +26,7 @@ Here we show examples of different weighting approaches that yield the same rank
 \begin{enumerate}
     \item Assume i.i.d Gaussian errors, i.e. $y(s) = m_i(s) + \epsilon$ with $\epsilon \sim \mathcal{N}(0,\sigma^2)$ and weights for model $i$ are proportional to the likelihood of the data under model $i$
     \begin{itemize}
-        \item That is, we assume that each data point (y(s)) comes from a normal distribution with the prediction of model $i$ ($m_i$) as mean and with standard deviation $\sigma$.
+        \item That is, we assume that each data point (y(s)) comes from a normal distribution with the output of model $i$ ($m_i$) as mean and with standard deviation $\sigma$.
         \item The likelihood of the observed data under model $i$ is then given by $P(Y\mid M_i, \sigma) = \prod_{s} {\frac {1}{\sqrt {2\pi \sigma ^{2}}}}\exp {\left(-{\frac {(y(s) - m_i(s)^{2}}{2\sigma ^{2}}}\right)}$, iterating over all data points, e.g. all spatial locations $s$.
         \item The log likelihood of all observed data is then given by: $-{\frac {n}{2}}\log(2\pi \sigma ^{2})-{\frac {1}{2\sigma ^{2}}}\sum _{i=1}^{n}\left(y(s)-m_i(s) \right)^{2}$
         \item turned into a likelihood again: $w_i \propto \exp(c_1) - \exp(\frac{1}{2\sigma^2} \cdot \sum _{i=1}^{n}\left(y(s)-m_i(s) \right)^{2} = \exp(c_1) - \exp(c_2 \cdot \textrm{SSE})$; i.e. $w_i\propto \exp(-c_2\cdot SSE)$ where SSE is the sum of squared errors and $c_1, c_2$ are constants.
