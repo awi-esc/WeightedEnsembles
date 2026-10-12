@@ -29,6 +29,7 @@ end
 
 
 begin
+    f = Figure(size = (750, 350))
     w = [0.1, 0.4, 0.5]
     ws = [
         fill(1.0, 3),
@@ -39,7 +40,6 @@ begin
     ]
     xlabels = string.(ws)
     ys = [1, 5:5:(length(ws)-1) * 5...]
-    f = Figure(size = (325, 350));
     ax = Axis(f[1,1],     
         yticks = (ys,  string.(ws)), yticklabelsize = 10,
         xticks = (0:0.2:1, string.(0:0.2:1)), xticklabelsize = 10,
@@ -81,7 +81,6 @@ begin
     Label(f[1, 1, TopLeft()], "a"; fontsize = 12, font = :bold, padding = (0,20,0,0))
     f
 end
-mwp.savePlot(f, joinpath(plot_dir, "fig1a.pdf"))
 
 # -------------------- show influence of prior on weighted averages ---------------------- #
 begin
@@ -99,8 +98,7 @@ begin
     labels = [L"Dir($\alpha=1$); $\alpha_0=N$", L"Dir($\alpha=\frac{1}{N}$); $\alpha_0=1$", L"Dir($\alpha=\frac{1}{500}$); $\alpha_0=\frac{N}{500}$"]
 end
 begin
-    f = Figure(size = (325, 350));
-    ax = Axis(f[1,1], xlabel = "Generated data", ylabel = "Density")
+    ax = Axis(f[1,2], xlabel = "Generated data", ylabel = "Density")
     for (i, alphas) in enumerate(params)
         model_ecs_dirichlet = mww.weightedAvgModelECS(
             generated_data, alphas, lh_fn, false
@@ -117,17 +115,15 @@ begin
     Makie.scatter!(ax, generated_data, fill(0, n_models), color = :darkgrey, marker = '*', markersize = 30, label = "Individual models")
     Makie.scatter!(ax, mean(generated_data), 0, color=:red, marker = '*', markersize = 30, label = "MMM")
     axislegend(merge = true, framevisible = false, position = :lt, patchsize = (10,10))
-    Label(f[1, 1, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (0,20,0,0))
+    Label(f[1, 2, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (0,20,0,0))
     f
 end
-mwp.savePlot(f, joinpath(plot_dir, "fig1b.pdf"))
+mwp.savePlot(f, joinpath(plot_dir, "fig1.pdf"))
 
 
 
-# -------------------- Some more plots (not in paper) -------------------------------------#
-# do not run when script is run from terminal
-if abspath(PROGRAM_FILE) != @__FILE__
-    @info "Make plots not in paper..."
+# ------------------------------------------- Appendix plots --------------------------------------------------------- #
+begin
     # Distribution of maximum weight values for different Dirichlet distributions
     dirAlpha(N, x) = fill(1/(x*N), N)
 
@@ -150,21 +146,8 @@ if abspath(PROGRAM_FILE) != @__FILE__
         )
     end
     f1
-
-    # Inverse Gamma distriubtions
-    f2 = Figure()
-    ax2 = Axis(f2[1,1], title = "InverseGamma distributions")
-    xs = 0:0.01:5
-    for (a,b) in [(1,1), (2,1), (3,3), (2,3)]
-        d = InverseGamma(a,b)
-        ys = Distributions.pdf.(d, xs)
-        Makie.lines!(ax2, xs, ys, label = "($a,$b)")
-    end
-    axislegend(ax2)
-    f2
 end
-
-mwp.savePlot(f1, joinpath(plot_dir, "dir-prior-max-weights.pdf"); overwrite=true)
+mwp.savePlot(f1, joinpath(plot_dir, "figC2.pdf"); overwrite=true)
 
 begin
     n_samples = 1000
@@ -176,12 +159,12 @@ begin
         distr = Dirichlet(alphas) 
         samples = rand(distr, n_samples)
 
-        title = latexstring("\\alpha_0 = 1/$N")
+        title = latexstring("\\alpha = 1/$N")
         Makie.hist!(
-            Axis(f3[1,i], xlabel=latexstring("w_i"), title = title),
+            Axis(f3[1,i], xlabel=latexstring("w_1"), title = title),
             samples[idx_model,:]
         )
     end
     f3
 end
-mwp.savePlot(f3, joinpath(plot_dir, "dir-prior-hists-w1.pdf"); overwrite = true)
+mwp.savePlot(f3, joinpath(plot_dir, "figC1.pdf"); overwrite = true)
