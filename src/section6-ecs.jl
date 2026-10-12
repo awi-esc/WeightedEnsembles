@@ -17,6 +17,8 @@ using YAXArrays
 
 include("./config.jl")
 
+target_data_dir_sec6 = joinpath(target_data_dir, "weights-ecs");
+
 # ----------------------------- Data ----------------------------------------- #
 # Get tas data for historical and projections
 proj_anom = readcubedata(open_dataset(joinpath(data_dir, "timeseries-projection-plot", "model_tas_gms-anomalies-ref_ssp585.nc"))["tas_annual-GM-ANOM_ssp585"])
@@ -50,39 +52,64 @@ end
 # Expected ECS (prior + posterior) for different Dirichlet priors
 n_iter = 10000; n_chains = 10;
 params = [fill(1, n_models), fill(1/n_models, n_models)]
-weights_priors = Vector(undef, 2)
-weights_posteriors = Vector(undef, 2)
-for (i, alphas) in enumerate(params)
-    Random.seed!(1712)
-    # 1. Prior samples Dirichlet
-    begin
-        model_ecs_dirichlet = mww.weightedAvgModelECS(
-            ecs_data.data, alphas, lh_fn_ecs, false
+
+is_missing_data = 
+!isfile(joinpath(target_data_dir_sec6, "posterior-weights-dirichlet-1.nc")) ||
+!isfile(joinpath(target_data_dir_sec6, "posterior-weights-dirichlet-1-over-N.nc")) ||
+!isfile(joinpath(target_data_dir_sec6, "prior-weights-dirichlet-1.nc")) ||
+!isfile(joinpath(target_data_dir_sec6, "prior-weights-dirichlet-1-over-N.nc"))
+
+if is_missing_data
+    weights_priors = Vector(undef, 2)
+    weights_posteriors = Vector(undef, 2)
+    for (i, alphas) in enumerate(params)
+        Random.seed!(1712)
+        # 1. Prior samples Dirichlet
+        begin
+            model_ecs_dirichlet = mww.weightedAvgModelECS(
+                ecs_data.data, alphas, lh_fn_ecs, false
+            )
+            samples_prior_dirichlet = Turing.sample(model_ecs_dirichlet, Prior(), MCMCThreads(), n_iter, n_chains)
+            ws_prior_dirichlet, _ = mww.drawFromSamples(samples_prior_dirichlet, n_iter, n_chains, n_models)
+            weights_priors[i] = ws_prior_dirichlet
+        end
+        # 2. Posterior samples with Dirichlet Prior
+        begin
+            samples_ecs_dirichlet = Turing.sample(model_ecs_dirichlet, MH(), MCMCThreads(), n_iter, n_chains)
+            ws_posterior_dirichlet, _ = mww.drawFromSamples(samples_ecs_dirichlet, n_iter, n_chains, n_models)
+            weights_posteriors[i] = ws_posterior_dirichlet
+        end
+    end
+
+    # ---------------------------- save weights to publish ----------------------------------- #
+    function saveWeights(data, dimensions, target_path; overwrite::Bool = false)
+        yax = YAXArray(dimensions, data)
+        savecube_safe(
+            yax,
+            target_path; 
+            overwrite = overwrite,
+            driver = :netcdf,
+            layername = "weight"
         )
-        samples_prior_dirichlet = Turing.sample(model_ecs_dirichlet, Prior(), MCMCThreads(), n_iter, n_chains)
-        ws_prior_dirichlet, _ = mww.drawFromSamples(samples_prior_dirichlet, n_iter, n_chains, n_models)
-        weights_priors[i] = ws_prior_dirichlet
     end
-    # 2. Posterior samples with Dirichlet Prior
-    begin
-        samples_ecs_dirichlet = Turing.sample(model_ecs_dirichlet, MH(), MCMCThreads(), n_iter, n_chains)
-        ws_posterior_dirichlet, _ = mww.drawFromSamples(samples_ecs_dirichlet, n_iter, n_chains, n_models)
-        weights_posteriors[i] = ws_posterior_dirichlet
-    end
+
+    dimensions = (Dim{:iteration}(1:n_iter), Dim{:model}(models), Dim{:chain}(1:n_chains))
+    saveWeights(weights_posteriors[1], dimensions, joinpath(target_data_dir_sec6, "posterior-weights-dirichlet-1.nc"); overwrite=true)
+    saveWeights(weights_posteriors[2], dimensions, joinpath(target_data_dir_sec6, "posterior-weights-dirichlet-1-over-N.nc"); overwrite=true)
+
+    saveWeights(weights_priors[1], dimensions, joinpath(target_data_dir_sec6, "prior-weights-dirichlet-1.nc"); overwrite=true)
+    saveWeights(weights_priors[2], dimensions, joinpath(target_data_dir_sec6, "prior-weights-dirichlet-1-over-N.nc"); overwrite=true)
+else
+    @info "Loading weights from files..."
+    weights_priors = [
+        Array(open_dataset(joinpath(target_data_dir_sec6, "prior-weights-dirichlet-1.nc"))["weight"].data), 
+        Array(open_dataset(joinpath(target_data_dir_sec6, "prior-weights-dirichlet-1-over-N.nc"))["weight"].data)
+    ]
+    weights_posteriors = [
+        Array(open_dataset(joinpath(target_data_dir_sec6, "posterior-weights-dirichlet-1.nc"))["weight"].data), 
+        Array(open_dataset(joinpath(target_data_dir_sec6, "posterior-weights-dirichlet-1-over-N.nc"))["weight"].data)
+    ]
 end
-
-# ---------------------------- save weights to publish ----------------------------------- #
-function saveWeights(data, dimensions, target_path)
-    yax = YAXArray(dimensions, data)
-    savecube_safe(yax, target_path; driver=:netcdf, layername="weight")
-end
-
-dimensions = (Dim{:iteration}(1:n_iter), Dim{:model}(models), Dim{:chain}(1:n_chains))
-saveWeights(weights_posteriors[1], dimensions, joinpath(target_data_dir, "weights-ecs", "posterior-weights-dirichlet-1.nc"))
-saveWeights(weights_posteriors[2], dimensions, joinpath(target_data_dir, "weights-ecs", "posterior-weights-dirichlet-1-over-N.nc"))
-
-saveWeights(weights_priors[1], dimensions, joinpath(target_data_dir, "weights-ecs", "prior-weights-dirichlet-1.nc"))
-saveWeights(weights_priors[2], dimensions, joinpath(target_data_dir, "weights-ecs", "prior-weights-dirichlet-1-over-N.nc"))
 # ---------------------------------------------------------------------------------------- #
 
 # Make plot
@@ -108,7 +135,7 @@ f_expected_ecs = mwp.plotExpectedECS(
     color_posterior = COLORS_ECS[2],
     alpha_densities = 0.8
 )
-mwp.savePlot(f_expected_ecs, joinpath(plot_dir, "fig8.pdf"))
+mwp.savePlot(f_expected_ecs, joinpath(plot_dir, "fig8.pdf"); overwrite=true)
 
 # Individual performance weighting: compute weights based on each model's ECS value (not in paper)
 iw_weights = mww.likelihoodWeights(
@@ -285,9 +312,9 @@ for idx in 1:2
         f
     end
     if idx == 1
-        mwp.savePlot(f, joinpath(plot_dir, "figA1.pdf")) # for idx=1 (Prior: Dir(1))
+        mwp.savePlot(f, joinpath(plot_dir, "figA1.pdf"); overwrite=true) # for idx=1 (Prior: Dir(1))
     elseif idx == 2
-        mwp.savePlot(f, joinpath(plot_dir, "fig9.pdf")) # for idx=2 (Prior: Dir(1/N))
+        mwp.savePlot(f, joinpath(plot_dir, "fig9.pdf"); overwrite=true) # for idx=2 (Prior: Dir(1/N))
     end
 end
 
