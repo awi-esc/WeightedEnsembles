@@ -29,7 +29,7 @@ end
 
 
 begin
-    f = Figure(size = (750, 350))
+    f = Figure(size = (650, 350))
     w = [0.1, 0.4, 0.5]
     ws = [
         fill(1.0, 3),

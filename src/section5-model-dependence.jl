@@ -206,21 +206,21 @@ samples, posterior_mat, posterior_list = mww.drawFromModel(
     model, n_iter, n_chains, n_models;
 )
 # boxplot of weights
-f = mwp.boxplotMCMCWeights(
-    posterior_list, data_rep_models, chain=1; xticks=0:0.2:1, xlims=(0,1), fig_size = (300, 225)
+f = Figure(size = (600, 225))
+ax = myBoxplotMCMCWeights(
+    f[1,2], posterior_list, data_rep_models, chain=1; xticks=0:0.2:1, xlims=(0,1)
 );
-Label(f[1, 1, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (0,80,0,0))
+Label(f[1, 2, TopLeft()], "b"; fontsize = 12, font = :bold, padding = (0,80,0,0))
 f
-mwp.savePlot(f, joinpath(plot_dir, "fig7b.pdf"))
 
 # plot correlation between weights
-f = mwp.plotCorrWeights(
+axes = myPlotCorrWeights(
+    f[1,1],
     data_rep_models, posterior_mat[:,:,1], [(1,2), (2,3)]; 
-    fig_size = (300, 225),
     xlims = (0, 0.8),
     ylims = (0, 0.6),
     xticks = 0:0.2:1
 );
 Label(f[1, 1, TopLeft()], "a"; fontsize = 12, font = :bold, padding = (0,30,0,0))
 f
-mwp.savePlot(f, joinpath(plot_dir, "fig7a.pdf"))
+mwp.savePlot(f, joinpath(plot_dir, "fig7.pdf"); overwrite=true)

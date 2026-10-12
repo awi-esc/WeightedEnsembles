@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "80da638704ac8e1eaeacc7f3beeac4261da135e4"
+project_hash = "8194110a60ee8c1edfd66ee669b9a303afc6f15c"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "f7304359109c768cf32dc5fa2d371565bb63b68a"
@@ -1182,9 +1182,9 @@ weakdeps = ["Makie", "RecipesBase"]
 
 [[deps.GeoMakie]]
 deps = ["Colors", "CoordinateTransformations", "Downloads", "GeoFormatTypes", "GeoInterface", "GeoJSON", "Geodesy", "GeometryBasics", "GeometryOps", "ImageIO", "LinearAlgebra", "Makie", "NaturalEarth", "Proj", "Reexport", "Statistics", "StructArrays"]
-git-tree-sha1 = "9d4bd9dbf25be0fa96bf26eac94a1316db374ede"
+git-tree-sha1 = "773cdb042ba888de7b4c49451672bac1a38bc28b"
 uuid = "db073c08-6b98-4ee5-b6a4-5efafb3259c6"
-version = "0.7.16"
+version = "0.7.17"
 
 [[deps.Geodesy]]
 deps = ["CoordinateTransformations", "Dates", "LinearAlgebra", "StaticArrays"]
