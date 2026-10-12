@@ -21,11 +21,11 @@ Activate and instantiate the julia project (WeightedEnsembles.jl) by running the
 
 ``julia --project=. -e "using Pkg; Pkg.instantiate()"``
 
-Then run the following commands to create the figures from the paper for the respective sections:
+Then run the following commands (from the top-level directory) to create the figures from the paper for the respective sections:
 
-- `julia --project=. section3-priors.jl`
-- `julia --project=. section4-combined-diagnostics.jl`
-- `julia --project=. section6-ecs.jl`
+- `julia --project=. src/section3-priors.jl`
+- `julia --project=. src/section4-combined-diagnostics.jl`
+- `julia --project=. src/section6-ecs.jl`
 
 All figures are stored in a subdirectory `plots` of the `plot_dir` specified in `src/config.jl`. The default name for the created directory is `output`.
 
