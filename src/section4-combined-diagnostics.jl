@@ -11,6 +11,8 @@ using YAXArrays
 
 include("./config.jl")
 
+plot_only = true # if false; RMSEs are also computed
+
 # --------------------------  Generate toy data -------------------------- #
 diagnostics = ["tas_ANOM", "psl_ANOM"];
 obs_tas = readcubedata(open_dataset(joinpath(data_dir, "diagnostics", "obs_tas_ANOM-GM_1980-2014.nc"))["tas_ANOM-GM"])[model=1]
@@ -112,142 +114,143 @@ begin
     rowsize!(f1.layout, 2, Relative(0.05))
     f1
 end
-mwp.savePlot(f1, joinpath(plot_dir, "fig2.pdf"))
+mwp.savePlot(f1, joinpath(plot_dir, "fig2.pdf"); overwrite=true)
 
-latitudes = collect(lookup(obs.lat))
-aw_mat = mwd.areaWeightMatrix(latitudes, Bool.(fill(false, so[1], so[2])))
-n_models = 2;
+if !plot_only
+    latitudes = collect(lookup(obs.lat))
+    aw_mat = mwd.areaWeightMatrix(latitudes, Bool.(fill(false, so[1], so[2])))
+    n_models = 2;
 
-# 1. Compute weights based on joint diagnostics
-n_iter = 10000; n_chains = 10;
-model_joint = mww.weightedAvgModel(
-    collect(toy_model), 
-    collect(obs),
-    [1, 1], # weights for diagnostics
-    fill(1/n_models, n_models), # prior weights
-    aw_mat
-)
-Random.seed!(710)
-samples_joint_prior, prior_mat, prior_list = mww.drawFromModel(
-    model_joint, n_iter, n_chains, n_models; from_prior = true
-)
-Random.seed!(710)
-samples_joint, posterior_mat, posterior_list = mww.drawFromModel(
-    model_joint, n_iter, n_chains, n_models;
-)
+    # 1. Compute weights based on joint diagnostics
+    n_iter = 10000; n_chains = 10;
+    model_joint = mww.weightedAvgModel(
+        collect(toy_model), 
+        collect(obs),
+        [1, 1], # weights for diagnostics
+        fill(1/n_models, n_models), # prior weights
+        aw_mat
+    )
+    Random.seed!(710)
+    samples_joint_prior, prior_mat, prior_list = mww.drawFromModel(
+        model_joint, n_iter, n_chains, n_models; from_prior = true
+    )
+    Random.seed!(710)
+    samples_joint, posterior_mat, posterior_list = mww.drawFromModel(
+        model_joint, n_iter, n_chains, n_models;
+    )
 
-MCMCChains.ess_rhat(samples_joint)
+    MCMCChains.ess_rhat(samples_joint)
 
-chain = 1;
-mean_w_joint = mean(posterior_mat, dims=1)
-round.(mean_w_joint[1,:,chain], digits=2)
-mwp.boxplotMCMCWeights(
-    posterior_list, Array(toy_model.model); chain=chain, chains_prior=prior_list
-)
+    chain = 1;
+    mean_w_joint = mean(posterior_mat, dims=1)
+    round.(mean_w_joint[1,:,chain], digits=2)
+    mwp.boxplotMCMCWeights(
+        posterior_list, Array(toy_model.model); chain=chain, chains_prior=prior_list
+    )
 
-# 2. Compute weights for each diagnostic separately
-# Diagnostic 1
-model_d1 = mww.weightedAvgModel(
-    collect(toy_model[diagnostic=1]), 
-    collect(obs[diagnostic=1]),
-    [1], # weights diagnostics
-    fill(1/n_models, n_models), # parameters Dirichlet prior
-    aw_mat
-)
-Random.seed!(710)
-samples_d1, posterior_mat, posterior_list = mww.drawFromModel(
-    model_d1, n_iter, n_chains, n_models;
-)
-mean1 = mean(posterior_mat, dims=1)
-round.(mean1[1,:,chain], digits=2)
+    # 2. Compute weights for each diagnostic separately
+    # Diagnostic 1
+    model_d1 = mww.weightedAvgModel(
+        collect(toy_model[diagnostic=1]), 
+        collect(obs[diagnostic=1]),
+        [1], # weights diagnostics
+        fill(1/n_models, n_models), # parameters Dirichlet prior
+        aw_mat
+    )
+    Random.seed!(710)
+    samples_d1, posterior_mat, posterior_list = mww.drawFromModel(
+        model_d1, n_iter, n_chains, n_models;
+    )
+    mean1 = mean(posterior_mat, dims=1)
+    round.(mean1[1,:,chain], digits=2)
 
-# Diagnostic 2
-model_d2 = mww.weightedAvgModel(
-    collect(toy_model[diagnostic=2]), 
-    collect(obs[diagnostic=2]),
-    [1], # weights diagnostics
-    fill(1/n_models, n_models), # parameters Dirichlet prior
-    aw_mat
-)
-Random.seed!(710)
-samples_d2, posterior_mat, posterior_list = mww.drawFromModel(
-    model_d2, n_iter, n_chains, 2;
-)
-mean2 = mean(posterior_mat, dims=1)
-round.(mean2[1,:,chain], digits=2)
+    # Diagnostic 2
+    model_d2 = mww.weightedAvgModel(
+        collect(toy_model[diagnostic=2]), 
+        collect(obs[diagnostic=2]),
+        [1], # weights diagnostics
+        fill(1/n_models, n_models), # parameters Dirichlet prior
+        aw_mat
+    )
+    Random.seed!(710)
+    samples_d2, posterior_mat, posterior_list = mww.drawFromModel(
+        model_d2, n_iter, n_chains, 2;
+    )
+    mean2 = mean(posterior_mat, dims=1)
+    round.(mean2[1,:,chain], digits=2)
 
-# 3. Compute weighted average models + corresponding RMSEs
-w_sep = YAXArray(
-    (Dim{:diagnostic}(diagnostics), Dim{:model}(["m1", "m2"])),
-    vcat(mean1[:,:, chain], mean2[:,:, chain])
-)
-mean_w_sep = mean(w_sep, dims=:diagnostic)[diagnostic=1] 
-round.(mean_w_sep.data, digits=2)
-    
-# Compute RMSE
-chain = 1;
-# averaged weights
-mstar_sep = mww.weightedAvg(toy_model, mean_w_sep, 3)
-#mse_mstar_sep = mwd.distancesData(mwd.insertSingletonDim(mstar_sep, 3, :model, "m*_sep"), obs)
-mse_sep_d1 = mwd.distancesData(
-    mwd.insertSingletonDim(mstar_sep[diagnostic=1], 3, :model, "m*_sep"),
-    obs[diagnostic=1]
-)
-mse_sep_d2 = mwd.distancesData(
-    mwd.insertSingletonDim(mstar_sep[diagnostic=2], 3, :model, "m*_sep"),
-    obs[diagnostic=2]
-)
-mse_sep = cat(mse_sep_d1, mse_sep_d2; dims=Dim{:diagnostic}(diagnostics))
-round.(mse_sep.data, digits=2)
-
-mstar_joint = mww.weightedAvg(toy_model, YAXArray((dims(toy_model, :model),), mean_w_joint[1,:,chain]), 3)
-mse_joint_d1 = mwd.distancesData(
-    mwd.insertSingletonDim(mstar_joint[diagnostic=1], 3, :model, "m*_joint"),
-    obs[diagnostic=1]
-)
-mse_joint_d2 = mwd.distancesData(
-    mwd.insertSingletonDim(mstar_joint[diagnostic=2], 3, :model, "m*_joint"),
-    obs[diagnostic=2]
-)
-mse_joint = cat(mse_joint_d1, mse_joint_d2; dims=Dim{:diagnostic}(diagnostics))
-round.(mse_joint.data, digits=2)
-
-# based on single diagnostic
-mstar_d1 = mww.weightedAvg(toy_model, mean1[1, :, chain], 3)
-mstar_d2 = mww.weightedAvg(toy_model, mean2[1, :, chain], 3)
-mses_single = []
-for mstar in [mstar_d1, mstar_d2]
-    mse_d1 = mwd.distancesData(
-        mwd.insertSingletonDim(mstar[diagnostic=1], 3, :model, "m*_d1"),
+    # 3. Compute weighted average models + corresponding RMSEs
+    w_sep = YAXArray(
+        (Dim{:diagnostic}(diagnostics), Dim{:model}(["m1", "m2"])),
+        vcat(mean1[:,:, chain], mean2[:,:, chain])
+    )
+    mean_w_sep = mean(w_sep, dims=:diagnostic)[diagnostic=1] 
+    round.(mean_w_sep.data, digits=2)
+        
+    # Compute RMSE
+    chain = 1;
+    # averaged weights
+    mstar_sep = mww.weightedAvg(toy_model, mean_w_sep, 3)
+    #mse_mstar_sep = mwd.distancesData(mwd.insertSingletonDim(mstar_sep, 3, :model, "m*_sep"), obs)
+    mse_sep_d1 = mwd.distancesData(
+        mwd.insertSingletonDim(mstar_sep[diagnostic=1], 3, :model, "m*_sep"),
         obs[diagnostic=1]
     )
-    mse_d2 = mwd.distancesData(
-        mwd.insertSingletonDim(mstar[diagnostic=2], 3, :model, "m*_d2"),
+    mse_sep_d2 = mwd.distancesData(
+        mwd.insertSingletonDim(mstar_sep[diagnostic=2], 3, :model, "m*_sep"),
         obs[diagnostic=2]
     )
-    mses = cat(mse_d1, mse_d2; dims=:model)
-    push!(mses_single, mses)
+    mse_sep = cat(mse_sep_d1, mse_sep_d2; dims=Dim{:diagnostic}(diagnostics))
+    round.(mse_sep.data, digits=2)
+
+    mstar_joint = mww.weightedAvg(toy_model, YAXArray((dims(toy_model, :model),), mean_w_joint[1,:,chain]), 3)
+    mse_joint_d1 = mwd.distancesData(
+        mwd.insertSingletonDim(mstar_joint[diagnostic=1], 3, :model, "m*_joint"),
+        obs[diagnostic=1]
+    )
+    mse_joint_d2 = mwd.distancesData(
+        mwd.insertSingletonDim(mstar_joint[diagnostic=2], 3, :model, "m*_joint"),
+        obs[diagnostic=2]
+    )
+    mse_joint = cat(mse_joint_d1, mse_joint_d2; dims=Dim{:diagnostic}(diagnostics))
+    round.(mse_joint.data, digits=2)
+
+    # based on single diagnostic
+    mstar_d1 = mww.weightedAvg(toy_model, mean1[1, :, chain], 3)
+    mstar_d2 = mww.weightedAvg(toy_model, mean2[1, :, chain], 3)
+    mses_single = []
+    for mstar in [mstar_d1, mstar_d2]
+        mse_d1 = mwd.distancesData(
+            mwd.insertSingletonDim(mstar[diagnostic=1], 3, :model, "m*_d1"),
+            obs[diagnostic=1]
+        )
+        mse_d2 = mwd.distancesData(
+            mwd.insertSingletonDim(mstar[diagnostic=2], 3, :model, "m*_d2"),
+            obs[diagnostic=2]
+        )
+        mses = cat(mse_d1, mse_d2; dims=:model)
+        push!(mses_single, mses)
+    end
+    mses_single
+
+    # For comparison Multi-Model-Mean (MMM)
+    mmm = mww.weightedAvg(toy_model, YAXArray((dims(toy_model, :model),), [0.5, 0.5]), 3)
+    rmse_mmm_d1 = mwd.distancesData(
+        mwd.insertSingletonDim(mmm[diagnostic=1], 3, :model, "mmm"),
+        obs[diagnostic=1]
+    )
+    rmse_mmm_d2 = mwd.distancesData(
+        mwd.insertSingletonDim(mmm[diagnostic=2], 3, :model, "mmm"),
+        obs[diagnostic=2]
+    )
+    rmse_mmm = cat(rmse_mmm_d1, rmse_mmm_d2; dims=Dim{:diagnostic}(diagnostics))
+    round.(rmse_mmm.data, digits=2)
+
+
+    # for comparison: just use single model
+    rmse_m1_d1 = round.(mwd.distancesData(toy_model[model=1:1, diagnostic=1], obs[diagnostic=1]).data, digits=2)
+    rmse_m1_d2 = round.(mwd.distancesData(toy_model[model=1:1, diagnostic=2], obs[diagnostic=2]).data, digits=2)
+
+    rmse_m2_d1 = round.(mwd.distancesData(toy_model[model=2:2, diagnostic=1], obs[diagnostic=1]).data, digits=2)
+    rmse_m2_d2 = round.(mwd.distancesData(toy_model[model=2:2, diagnostic=2], obs[diagnostic=2]).data, digits=2)
 end
-mses_single
-
-# For comparison Multi-Model-Mean (MMM)
-mmm = mww.weightedAvg(toy_model, YAXArray((dims(toy_model, :model),), [0.5, 0.5]), 3)
-rmse_mmm_d1 = mwd.distancesData(
-    mwd.insertSingletonDim(mmm[diagnostic=1], 3, :model, "mmm"),
-    obs[diagnostic=1]
-)
-rmse_mmm_d2 = mwd.distancesData(
-    mwd.insertSingletonDim(mmm[diagnostic=2], 3, :model, "mmm"),
-    obs[diagnostic=2]
-)
-rmse_mmm = cat(rmse_mmm_d1, rmse_mmm_d2; dims=Dim{:diagnostic}(diagnostics))
-round.(rmse_mmm.data, digits=2)
-
-
-# for comparison: just use single model
-rmse_m1_d1 = round.(mwd.distancesData(toy_model[model=1:1, diagnostic=1], obs[diagnostic=1]).data, digits=2)
-rmse_m1_d2 = round.(mwd.distancesData(toy_model[model=1:1, diagnostic=2], obs[diagnostic=2]).data, digits=2)
-
-rmse_m2_d1 = round.(mwd.distancesData(toy_model[model=2:2, diagnostic=1], obs[diagnostic=1]).data, digits=2)
-rmse_m2_d2 = round.(mwd.distancesData(toy_model[model=2:2, diagnostic=2], obs[diagnostic=2]).data, digits=2)
-
